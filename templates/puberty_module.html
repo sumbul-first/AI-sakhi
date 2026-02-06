@@ -1,0 +1,101 @@
+{% extends "module.html" %}
+
+{% set module_icon = '🌸' %}
+{% set module_title = _('Puberty Education') %}
+{% set module_description = _('Understanding body changes, menstruation, and hygiene during adolescence') %}
+
+{% block module_overview %}
+<p>{{ _('Puberty is a natural phase of growing up. This module helps you understand the physical and emotional changes that happen during this time. Learn about menstruation, body hygiene, and how to take care of yourself with confidence.') }}</p>
+
+<div class="key-points">
+    <h3>{{ _('What You Will Learn:') }}</h3>
+    <ul>
+        <li>{{ _('Physical changes during puberty') }}</li>
+        <li>{{ _('Understanding menstruation and menstrual cycle') }}</li>
+        <li>{{ _('Personal hygiene and self-care') }}</li>
+        <li>{{ _('Emotional changes and how to cope') }}</li>
+        <li>{{ _('Nutrition and health during adolescence') }}</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block module_topics %}
+<div class="topic-card">
+    <div class="topic-icon">👧</div>
+    <h3 class="topic-title">{{ _('Body Changes') }}</h3>
+    <p class="topic-description">{{ _('Learn about the physical changes that happen during puberty, including growth spurts, body shape changes, and development.') }}</p>
+</div>
+
+<div class="topic-card">
+    <div class="topic-icon">🩸</div>
+    <h3 class="topic-title">{{ _('Menstruation') }}</h3>
+    <p class="topic-description">{{ _('Understand what menstruation is, why it happens, and how to manage your period with confidence.') }}</p>
+</div>
+
+<div class="topic-card">
+    <div class="topic-icon">🧼</div>
+    <h3 class="topic-title">{{ _('Hygiene & Care') }}</h3>
+    <p class="topic-description">{{ _('Learn about personal hygiene practices, including bathing, menstrual hygiene, and skin care.') }}</p>
+</div>
+
+<div class="topic-card">
+    <div class="topic-icon">💭</div>
+    <h3 class="topic-title">{{ _('Emotional Changes') }}</h3>
+    <p class="topic-description">{{ _('Understand the emotional changes during puberty and learn healthy ways to cope with mood swings.') }}</p>
+</div>
+
+<div class="topic-card">
+    <div class="topic-icon">🥗</div>
+    <h3 class="topic-title">{{ _('Nutrition') }}</h3>
+    <p class="topic-description">{{ _('Discover the importance of good nutrition during adolescence and what foods help you stay healthy.') }}</p>
+</div>
+
+<div class="topic-card">
+    <div class="topic-icon">💪</div>
+    <h3 class="topic-title">{{ _('Building Confidence') }}</h3>
+    <p class="topic-description">{{ _('Learn how to feel confident and positive about the changes happening in your body.') }}</p>
+</div>
+{% endblock %}
+
+{% block audio_content %}
+<div id="audio-players-container">
+    <!-- Audio players will be dynamically loaded here -->
+    <p class="loading-message">{{ _('Loading audio content...') }}</p>
+</div>
+{% endblock %}
+
+{% block video_content %}
+<div id="video-players-container">
+    <!-- Video players will be dynamically loaded here -->
+    <p class="loading-message">{{ _('Loading video content...') }}</p>
+</div>
+{% endblock %}
+
+{% block resources %}
+<div class="resource-item">
+    <div class="resource-icon">📖</div>
+    <div class="resource-content">
+        <h4 class="resource-title">{{ _('Puberty Guide PDF') }}</h4>
+        <p class="resource-description">{{ _('Download a comprehensive guide about puberty and adolescent health.') }}</p>
+        <a href="#" class="resource-link">{{ _('Download PDF') }} →</a>
+    </div>
+</div>
+
+<div class="resource-item">
+    <div class="resource-icon">🏥</div>
+    <div class="resource-content">
+        <h4 class="resource-title">{{ _('Find Health Centers') }}</h4>
+        <p class="resource-description">{{ _('Locate nearby health centers and clinics for adolescent health services.') }}</p>
+        <a href="#" class="resource-link">{{ _('Find Centers') }} →</a>
+    </div>
+</div>
+
+<div class="resource-item">
+    <div class="resource-icon">👩‍⚕️</div>
+    <div class="resource-content">
+        <h4 class="resource-title">{{ _('Talk to a Counselor') }}</h4>
+        <p class="resource-description">{{ _('Connect with trained counselors who can answer your questions confidentially.') }}</p>
+        <a href="#" class="resource-link">{{ _('Get Support') }} →</a>
+    </div>
+</div>
+{% endblock %}

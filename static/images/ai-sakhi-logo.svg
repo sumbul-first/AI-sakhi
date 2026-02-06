@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF8DC;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FFE4E1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F0F8FF;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="motherSaree" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6347;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="daughterDress" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4682B4;stop-opacity:1" />
+    </linearGradient>
+    
+    <radialGradient id="heartGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FF1493;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DC143C;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="150" cy="100" r="85" fill="url(#backgroundGradient)" stroke="#FF69B4" stroke-width="2" opacity="0.9"/>
+  
+  <!-- Decorative Lotus Petals -->
+  <g id="lotus-petals" opacity="0.6">
+    <path d="M70 60 Q80 45 90 60 Q80 75 70 60" fill="#FFB6C1"/>
+    <path d="M210 60 Q220 45 230 60 Q220 75 210 60" fill="#FFB6C1"/>
+    <path d="M70 140 Q80 155 90 140 Q80 125 70 140" fill="#FFB6C1"/>
+    <path d="M210 140 Q220 155 230 140 Q220 125 210 140" fill="#FFB6C1"/>
+  </g>
+  
+  <!-- Sound Waves (Voice-First Technology) -->
+  <g id="sound-waves" opacity="0.3">
+    <path d="M40 100 Q50 95 60 100 Q50 105 40 100" fill="none" stroke="#9370DB" stroke-width="2"/>
+    <path d="M240 100 Q250 95 260 100 Q250 105 240 100" fill="none" stroke="#9370DB" stroke-width="2"/>
+    <path d="M35 100 Q45 90 55 100 Q45 110 35 100" fill="none" stroke="#9370DB" stroke-width="1.5"/>
+    <path d="M245 100 Q255 90 265 100 Q255 110 245 100" fill="none" stroke="#9370DB" stroke-width="1.5"/>
+  </g>
+  
+  <!-- Mother Figure -->
+  <g id="mother">
+    <!-- Body/Saree -->
+    <path d="M100 95 Q115 85 130 95 L125 125 Q115 130 105 125 Z" fill="url(#motherSaree)"/>
+    <!-- Arms -->
+    <ellipse cx="105" cy="100" rx="8" ry="20" fill="#FDBCB4" transform="rotate(-20 105 100)"/>
+    <ellipse cx="125" cy="100" rx="8" ry="20" fill="#FDBCB4" transform="rotate(20 125 100)"/>
+    <!-- Head -->
+    <circle cx="115" cy="75" r="18" fill="#FDBCB4"/>
+    <!-- Hair -->
+    <path d="M100 65 Q115 55 130 65 Q125 75 115 75 Q105 75 100 65" fill="#8B4513"/>
+    <!-- Bindi -->
+    <circle cx="115" cy="70" r="2" fill="#DC143C"/>
+    <!-- Eyes -->
+    <ellipse cx="110" cy="72" rx="2" ry="1" fill="#000"/>
+    <ellipse cx="120" cy="72" rx="2" ry="1" fill="#000"/>
+    <!-- Smile -->
+    <path d="M108 78 Q115 82 122 78" fill="none" stroke="#000" stroke-width="1"/>
+    <!-- Earrings -->
+    <circle cx="98" cy="75" r="3" fill="#FFD700"/>
+    <circle cx="132" cy="75" r="3" fill="#FFD700"/>
+    <!-- Hand on daughter's shoulder -->
+    <circle cx="140" cy="85" r="6" fill="#FDBCB4"/>
+  </g>
+  
+  <!-- Daughter Figure -->
+  <g id="daughter">
+    <!-- Body/Dress -->
+    <path d="M165 100 Q175 90 185 100 L182 120 Q175 125 168 120 Z" fill="url(#daughterDress)"/>
+    <!-- Arms -->
+    <ellipse cx="168" cy="105" rx="6" ry="15" fill="#FDBCB4" transform="rotate(-10 168 105)"/>
+    <ellipse cx="182" cy="105" rx="6" ry="15" fill="#FDBCB4" transform="rotate(10 182 105)"/>
+    <!-- Head -->
+    <circle cx="175" cy="85" r="14" fill="#FDBCB4"/>
+    <!-- Hair with ribbons -->
+    <path d="M163 75 Q175 65 187 75 Q182 85 175 85 Q168 85 163 75" fill="#8B4513"/>
+    <circle cx="165" cy="75" r="3" fill="#FF69B4"/> <!-- Hair ribbon -->
+    <circle cx="185" cy="75" r="3" fill="#FF69B4"/> <!-- Hair ribbon -->
+    <!-- Eyes (looking up at mother) -->
+    <ellipse cx="171" cy="82" rx="2" ry="1" fill="#000"/>
+    <ellipse cx="179" cy="82" rx="2" ry="1" fill="#000"/>
+    <!-- Smile -->
+    <path d="M170 88 Q175 91 180 88" fill="none" stroke="#000" stroke-width="1"/>
+  </g>
+  
+  <!-- Heart Connection -->
+  <g id="heart-connection">
+    <path d="M145 85 C145 80, 155 80, 155 85 C155 80, 165 80, 165 85 C165 95, 155 105, 145 85" fill="url(#heartGradient)"/>
+    <!-- Small hearts floating around -->
+    <path d="M130 70 C130 68, 134 68, 134 70 C134 68, 138 68, 138 70 C138 74, 134 78, 130 70" fill="#FF69B4" opacity="0.7"/>
+    <path d="M190 95 C190 93, 194 93, 194 95 C194 93, 198 93, 198 95 C198 99, 194 103, 190 95" fill="#FF69B4" opacity="0.7"/>
+  </g>
+  
+  <!-- Main Title -->
+  <text x="150" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#FF69B4">AI SAKHI</text>
+  
+  <!-- Hindi Subtitle -->
+  <text x="150" y="165" text-anchor="middle" font-family="Noto Sans Devanagari, Arial, sans-serif" font-size="14" fill="#9370DB">आपकी सखी</text>
+  
+  <!-- English Tagline -->
+  <text x="150" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Voice-First Health Companion</text>
+  
+  <!-- Protective Border -->
+  <circle cx="150" cy="100" r="85" fill="none" stroke="#DDA0DD" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+</svg>

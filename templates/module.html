@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{{ module_title }} - {{ _('AI Sakhi') }}{% endblock %}
+
+{% block content %}
+<div class="module-page">
+    <!-- Module Header -->
+    <div class="module-header">
+        <div class="module-icon-large">{{ module_icon }}</div>
+        <h1 class="module-title">{{ module_title }}</h1>
+        <p class="module-description">{{ module_description }}</p>
+    </div>
+    
+    <!-- Module Navigation -->
+    <div class="module-nav">
+        <button class="nav-btn active" data-section="overview">
+            📚 {{ _('Overview') }}
+        </button>
+        <button class="nav-btn" data-section="content">
+            🎧 {{ _('Audio Content') }}
+        </button>
+        <button class="nav-btn" data-section="video">
+            🎬 {{ _('Video Content') }}
+        </button>
+        <button class="nav-btn" data-section="resources">
+            📋 {{ _('Resources') }}
+        </button>
+    </div>
+    
+    <!-- Module Content Sections -->
+    <div class="module-content">
+        <!-- Overview Section -->
+        <div class="content-section active" id="overview-section">
+            <h2 class="section-heading">{{ _('About This Module') }}</h2>
+            <div class="overview-card">
+                {% block module_overview %}
+                <p>{{ _('This module provides comprehensive health education and guidance.') }}</p>
+                {% endblock %}
+            </div>
+            
+            <div class="topics-grid">
+                {% block module_topics %}
+                <!-- Topics will be inserted here -->
+                {% endblock %}
+            </div>
+        </div>
+        
+        <!-- Audio Content Section -->
+        <div class="content-section" id="content-section">
+            <h2 class="section-heading">{{ _('Audio Education') }}</h2>
+            <div class="audio-content-grid">
+                {% block audio_content %}
+                <!-- Audio players will be inserted here -->
+                {% endblock %}
+            </div>
+        </div>
+        
+        <!-- Video Content Section -->
+        <div class="content-section" id="video-section">
+            <h2 class="section-heading">{{ _('Video Education') }}</h2>
+            <div class="video-content-grid">
+                {% block video_content %}
+                <!-- Video players will be inserted here -->
+                {% endblock %}
+            </div>
+        </div>
+        
+        <!-- Resources Section -->
+        <div class="content-section" id="resources-section">
+            <h2 class="section-heading">{{ _('Additional Resources') }}</h2>
+            <div class="resources-list">
+                {% block resources %}
+                <!-- Resources will be inserted here -->
+                {% endblock %}
+            </div>
+            
+            <!-- Emergency Contacts -->
+            <div class="emergency-card">
+                <h3>🚨 {{ _('Emergency Contacts') }}</h3>
+                <div class="emergency-contacts">
+                    <div class="contact-item">
+                        <span class="contact-label">{{ _('Women Helpline') }}:</span>
+                        <a href="tel:1091" class="contact-number">1091</a>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">{{ _('Medical Emergency') }}:</span>
+                        <a href="tel:108" class="contact-number">108</a>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">{{ _('Police Emergency') }}:</span>
+                        <a href="tel:100" class="contact-number">100</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Voice Interaction Panel -->
+    <div class="voice-panel">
+        <button class="voice-ask-btn" onclick="startVoiceQuery()">
+            🎤 {{ _('Ask a Question') }}
+        </button>
+        <p class="voice-hint">{{ _('You can ask questions about this topic using your voice') }}</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Module navigation
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Remove active class from all buttons and sections
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        
+        // Add active class to clicked button
+        this.classList.add('active');
+        
+        // Show corresponding section
+        const section = this.dataset.section;
+        document.getElementById(section + '-section').classList.add('active');
+    });
+});
+
+// Voice query function
+function startVoiceQuery() {
+    // This will be implemented with the voice interface
+    alert('{{ _("Voice query feature coming soon!") }}');
+}
+</script>
+{% endblock %}

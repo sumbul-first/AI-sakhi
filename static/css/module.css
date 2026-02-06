@@ -1,0 +1,468 @@
+/**
+ * Module Page Styles for AI Sakhi
+ * Women-centric design with cultural sensitivity
+ */
+
+/* Module Page Layout */
+.module-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* Module Header */
+.module-header {
+    text-align: center;
+    padding: var(--spacing-xl) var(--spacing-lg);
+    background: linear-gradient(135deg, rgba(255, 105, 180, 0.1) 0%, rgba(221, 160, 221, 0.1) 100%);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.module-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 105, 180, 0.05) 0%, transparent 70%);
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.module-icon-large {
+    font-size: 5rem;
+    margin-bottom: var(--spacing-md);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+    animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.module-title {
+    font-size: 2.5rem;
+    color: var(--primary-pink);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.module-description {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.8;
+}
+
+/* Module Navigation */
+.module-nav {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    overflow-x: auto;
+    padding: var(--spacing-sm);
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.nav-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(255, 105, 180, 0.1);
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 105, 180, 0.2);
+    transform: translateY(-2px);
+}
+
+.nav-btn.active {
+    background: linear-gradient(135deg, var(--primary-pink) 0%, var(--soft-orange) 100%);
+    color: white;
+    border-color: var(--primary-pink);
+    box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+}
+
+/* Content Sections */
+.module-content {
+    position: relative;
+    min-height: 400px;
+}
+
+.content-section {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.content-section.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.section-heading {
+    font-size: 2rem;
+    color: var(--gentle-purple);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 3px solid var(--primary-pink);
+    font-weight: 700;
+}
+
+/* Overview Card */
+.overview-card {
+    background: var(--surface);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px var(--shadow);
+    margin-bottom: var(--spacing-lg);
+    border-left: 4px solid var(--primary-pink);
+}
+
+.overview-card p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+
+/* Topics Grid */
+.topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.topic-card {
+    background: var(--surface);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.topic-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(255, 105, 180, 0.2);
+    border-color: var(--primary-pink);
+}
+
+.topic-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.topic-title {
+    font-size: 1.3rem;
+    color: var(--primary-pink);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+}
+
+.topic-description {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Content Grids */
+.audio-content-grid,
+.video-content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* Resources List */
+.resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.resource-item {
+    background: var(--surface);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    transition: all 0.3s ease;
+}
+
+.resource-item:hover {
+    transform: translateX(8px);
+    box-shadow: 0 4px 12px rgba(255, 105, 180, 0.2);
+}
+
+.resource-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.resource-content {
+    flex: 1;
+}
+
+.resource-title {
+    font-size: 1.1rem;
+    color: var(--primary-pink);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.resource-description {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.resource-link {
+    color: var(--gentle-purple);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.resource-link:hover {
+    color: var(--primary-pink);
+    text-decoration: underline;
+}
+
+/* Emergency Card */
+.emergency-card {
+    background: linear-gradient(135deg, rgba(255, 105, 180, 0.1) 0%, rgba(255, 160, 122, 0.1) 100%);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--primary-pink);
+    box-shadow: 0 4px 12px rgba(255, 105, 180, 0.2);
+}
+
+.emergency-card h3 {
+    color: var(--primary-pink);
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-md);
+    font-weight: 700;
+}
+
+.emergency-contacts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.contact-item {
+    background: var(--surface);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    text-align: center;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.contact-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.contact-number {
+    font-size: 1.5rem;
+    color: var(--primary-pink);
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.contact-number:hover {
+    color: var(--soft-orange);
+    transform: scale(1.05);
+}
+
+/* Voice Panel */
+.voice-panel {
+    position: fixed;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--primary-pink) 0%, var(--soft-orange) 100%);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(255, 105, 180, 0.4);
+    text-align: center;
+    z-index: 50;
+    animation: slideInUp 0.5s ease;
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.voice-ask-btn {
+    background: white;
+    color: var(--primary-pink);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    margin-bottom: var(--spacing-xs);
+    width: 100%;
+}
+
+.voice-ask-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
+.voice-hint {
+    color: white;
+    font-size: 0.85rem;
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* Cultural Design Elements */
+.decorative-pattern {
+    position: absolute;
+    opacity: 0.05;
+    pointer-events: none;
+}
+
+.decorative-pattern.top-left {
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, var(--primary-pink) 0%, transparent 70%);
+}
+
+.decorative-pattern.bottom-right {
+    bottom: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, var(--gentle-purple) 0%, transparent 70%);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .module-page {
+        padding: var(--spacing-md);
+    }
+    
+    .module-header {
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+    
+    .module-icon-large {
+        font-size: 4rem;
+    }
+    
+    .module-title {
+        font-size: 2rem;
+    }
+    
+    .module-nav {
+        flex-direction: column;
+    }
+    
+    .nav-btn {
+        min-width: 100%;
+    }
+    
+    .audio-content-grid,
+    .video-content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .topics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .emergency-contacts {
+        grid-template-columns: 1fr;
+    }
+    
+    .voice-panel {
+        left: var(--spacing-sm);
+        right: var(--spacing-sm);
+        bottom: var(--spacing-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .module-icon-large {
+        font-size: 3rem;
+    }
+    
+    .module-title {
+        font-size: 1.5rem;
+    }
+    
+    .section-heading {
+        font-size: 1.5rem;
+    }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+    .module-icon-large,
+    .module-header::before {
+        animation: none;
+    }
+    
+    .content-section {
+        animation: none;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .module-nav,
+    .voice-panel {
+        display: none;
+    }
+    
+    .content-section {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    .emergency-card {
+        border: 2px solid #000;
+        background: #f0f0f0;
+    }
+}

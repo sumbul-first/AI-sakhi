@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <div class="hero-logo">
+            <img src="{{ url_for('static', filename='images/ai-sakhi-logo.svg') }}" 
+                 alt="{{ _('AI Sakhi - Mother and Daughter') }}" 
+                 class="hero-logo-img">
+        </div>
+        <h2 class="hero-title">{{ _('Welcome to AI Sakhi') }}</h2>
+        <p class="hero-subtitle">{{ _('Your trusted voice-first health companion') }}</p>
+        <p class="hero-description">
+            {{ _('Get health education, safety guidance, and government resource information in your local language') }}
+        </p>
+        
+        <div class="hero-actions">
+            <button class="btn btn-primary btn-large" onclick="startVoiceInteraction()">
+                🎤 {{ _('Start Voice Interaction') }}
+            </button>
+            <a href="{{ url_for('modules') }}" class="btn btn-secondary btn-large">
+                📚 {{ _('Browse Health Modules') }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="modules-preview">
+    <h3 class="section-title">{{ _('Health Education Modules') }}</h3>
+    <div class="modules-grid">
+        <div class="module-card" onclick="navigateToModule('puberty')">
+            <div class="module-icon">🌸</div>
+            <h4>{{ _('Puberty Education') }}</h4>
+            <p>{{ _('Body changes, menstruation, and hygiene') }}</p>
+        </div>
+        
+        <div class="module-card" onclick="navigateToModule('safety')">
+            <div class="module-icon">🛡️</div>
+            <h4>{{ _('Safety & Mental Support') }}</h4>
+            <p>{{ _('Good/bad touch awareness and emotional support') }}</p>
+        </div>
+        
+        <div class="module-card" onclick="navigateToModule('menstrual')">
+            <div class="module-icon">🩸</div>
+            <h4>{{ _('Menstrual Shopping Guide') }}</h4>
+            <p>{{ _('Product comparison and selection guidance') }}</p>
+        </div>
+        
+        <div class="module-card" onclick="navigateToModule('pregnancy')">
+            <div class="module-icon">🤱</div>
+            <h4>{{ _('Pregnancy Guidance') }}</h4>
+            <p>{{ _('Nutrition tips and danger signs') }}</p>
+        </div>
+        
+        <div class="module-card" onclick="navigateToModule('government')">
+            <div class="module-icon">🏛️</div>
+            <h4>{{ _('Government Resources') }}</h4>
+            <p>{{ _('Health schemes and programs information') }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="features-section">
+    <h3 class="section-title">{{ _('Why Choose AI Sakhi?') }}</h3>
+    <div class="features-grid">
+        <div class="feature-item">
+            <div class="feature-icon">🎤</div>
+            <h4>{{ _('Voice-First Design') }}</h4>
+            <p>{{ _('Interact naturally using your voice in your preferred language') }}</p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">🌍</div>
+            <h4>{{ _('Multi-Language Support') }}</h4>
+            <p>{{ _('Available in Hindi, English, Bengali, Tamil, Telugu, and Marathi') }}</p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">🏥</div>
+            <h4>{{ _('Trusted Information') }}</h4>
+            <p>{{ _('Educational content from reliable sources with medical boundaries') }}</p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">🚨</div>
+            <h4>{{ _('Emergency Support') }}</h4>
+            <p>{{ _('Immediate access to helplines and human support when needed') }}</p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">👩‍👧</div>
+            <h4>{{ _('Women-Centric Design') }}</h4>
+            <p>{{ _('Designed specifically for women and girls in rural communities') }}</p>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-icon">🏛️</div>
+            <h4>{{ _('Government Schemes') }}</h4>
+            <p>{{ _('Information about JSY, PMSMA, JSSK, and other health programs') }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startVoiceInteraction() {
+    // Placeholder for voice interaction
+    alert('{{ _("Voice interaction will be implemented soon!") }}');
+}
+
+function navigateToModule(moduleName) {
+    // Placeholder for module navigation
+    alert('{{ _("Module navigation will be implemented soon!") }} - ' + moduleName);
+}
+</script>
+{% endblock %}

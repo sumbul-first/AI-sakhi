@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sakhi - Media Player Demo</title>
+    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="static/css/media-player.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container" style="max-width: 800px; margin: 20px auto; padding: 20px;">
+        <h1>AI Sakhi Media Player Demo</h1>
+        
+        <h2>Audio Player Example</h2>
+        <div id="audio-demo"></div>
+        
+        <h2>Video Player Example</h2>
+        <div id="video-demo"></div>
+        
+        <h2>Audio with Transcript Example</h2>
+        <div id="audio-transcript-demo"></div>
+        
+        <button onclick="testMediaPlayers()" style="margin: 20px 0; padding: 10px 20px; background: #FF69B4; color: white; border: none; border-radius: 6px; cursor: pointer;">
+            Load Demo Content
+        </button>
+    </div>
+
+    <script src="static/js/media-player.js"></script>
+    <script>
+        function testMediaPlayers() {
+            // Create audio player
+            const audioPlayer = window.mediaPlayer.createAudioPlayer(
+                'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+                {
+                    title: 'Puberty Education - Body Changes',
+                    language: 'hi',
+                    transcript: 'यह ऑडियो यौवनावस्था में होने वाले शारीरिक बदलावों के बारे में बताता है।',
+                    showTranscript: true
+                }
+            );
+            
+            document.getElementById('audio-demo').innerHTML = audioPlayer.playerHTML;
+        }
+    </script>
+</body>
+</html>

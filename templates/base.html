@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ _('AI Sakhi - Voice-First Health Companion') }}{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/ai-sakhi-icon.svg') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/ai-sakhi-favicon-32x32.png') }}">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/media-player.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/module.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/branding.css') }}">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Header with AI Sakhi Logo -->
+    <header class="app-header">
+        <div class="container">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/ai-sakhi-logo.svg') }}" 
+                     alt="{{ _('AI Sakhi Logo') }}" 
+                     class="main-logo ai-sakhi-logo">
+                <div class="brand-text">
+                    <h1 class="app-title">AI SAKHI</h1>
+                    <p class="app-tagline">{{ _('आपकी सखी, आपके साथ') }}</p>
+                    <p class="app-subtitle">{{ _('Voice-First Health Companion') }}</p>
+                </div>
+            </div>
+            
+            <!-- Language Selector -->
+            <div class="language-selector">
+                <select id="languageSelect" onchange="changeLanguage(this.value)">
+                    {% for code, name in config.LANGUAGES.items() %}
+                    <option value="{{ code }}" {% if code == get_locale() %}selected{% endif %}>
+                        {{ name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Voice Button -->
+            <div class="voice-controls">
+                <button id="voiceButton" class="voice-btn" onclick="toggleVoice()">
+                    🎤 {{ _('Voice') }}
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="{{ url_for('static', filename='images/ai-sakhi-icon.svg') }}" 
+                         alt="{{ _('AI Sakhi') }}" 
+                         class="footer-logo-img">
+                    <span>AI SAKHI</span>
+                </div>
+                <div class="footer-text">
+                    <p>{{ _('Trusted health companion for women and girls') }}</p>
+                    <p class="disclaimer">{{ _('Educational content only - consult healthcare professionals for medical advice') }}</p>
+                </div>
+                <div class="emergency-info">
+                    <p><strong>{{ _('Emergency Helplines') }}:</strong></p>
+                    <p>{{ _('Women Helpline') }}: 1091</p>
+                    <p>{{ _('Medical Emergency') }}: 108</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/splash-screen.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/language-selector.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/media-player.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
