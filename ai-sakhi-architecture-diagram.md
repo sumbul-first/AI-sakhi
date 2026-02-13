@@ -3,6 +3,14 @@
 ## Overview
 This document provides a comprehensive architecture diagram for the AI Sakhi Voice-First Health Companion application, designed to serve rural women and girls with health education and guidance.
 
+## 📋 Related Documentation
+
+For additional architecture resources, see:
+- **Architecture Summary**: `AI-SAKHI-ARCHITECTURE-SUMMARY.md` - Comprehensive overview of the entire system
+- **Diagram Generation Guide**: `DIAGRAM-GENERATION-GUIDE.md` - Instructions for generating PNG diagrams
+- **Python Script**: `generate_ai_sakhi_diagram.py` - Automated diagram generation script
+- **MCP Setup Report**: `aws-diagram-mcp-setup-report.md` - MCP server setup and troubleshooting
+
 ## Main Architecture Diagram
 
 ### Mermaid Diagram (GitHub/GitLab Compatible)
