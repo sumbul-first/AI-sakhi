@@ -71,6 +71,12 @@ def get_locale():
 
 babel = Babel(app, locale_selector=get_locale)
 
+# Make get_locale available to templates
+@app.context_processor
+def inject_locale():
+    """Inject get_locale function into template context."""
+    return dict(get_locale=get_locale)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

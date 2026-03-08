@@ -1,0 +1,282 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AI Sakhi - Security Groups and IAM Roles'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: Environment name prefix
+    
+  VpcId:
+    Type: String
+    Description: VPC ID
+    
+  ApplicationPort:
+    Type: Number
+    Description: Application port number
+
+Resources:
+  # Application Load Balancer Security Group
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-alb-sg'
+      GroupDescription: Security group for Application Load Balancer
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTPS from anywhere
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-alb-sg'
+
+  # EC2 Instance Security Group
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-ec2-sg'
+      GroupDescription: Security group for EC2 instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApplicationPort
+          ToPort: !Ref ApplicationPort
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: Allow traffic from ALB
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 10.0.0.0/16
+          Description: Allow SSH from within VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-ec2-sg'
+
+  # RDS Database Security Group
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-db-sg'
+      GroupDescription: Security group for RDS database
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: Allow PostgreSQL from EC2 instances
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-sg'
+
+  # IAM Role for EC2 Instances
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-ec2-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
+      Policies:
+        - PolicyName: !Sub '${EnvironmentName}-ec2-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # S3 Access
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                  - 's3:ListBucket'
+                  - 's3:DeleteObject'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${EnvironmentName}-*'
+                  - !Sub 'arn:aws:s3:::${EnvironmentName}-*/*'
+              # DynamoDB Access
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:BatchWriteItem'
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${EnvironmentName}-*'
+              # AWS Transcribe Access
+              - Effect: Allow
+                Action:
+                  - 'transcribe:StartTranscriptionJob'
+                  - 'transcribe:GetTranscriptionJob'
+                  - 'transcribe:ListTranscriptionJobs'
+                Resource: '*'
+              # AWS Polly Access
+              - Effect: Allow
+                Action:
+                  - 'polly:SynthesizeSpeech'
+                  - 'polly:DescribeVoices'
+                Resource: '*'
+              # AWS Translate Access
+              - Effect: Allow
+                Action:
+                  - 'translate:TranslateText'
+                  - 'translate:ListLanguages'
+                Resource: '*'
+              # Amazon Bedrock Access
+              - Effect: Allow
+                Action:
+                  - 'bedrock:InvokeModel'
+                  - 'bedrock:InvokeModelWithResponseStream'
+                Resource: '*'
+              # SNS Access for notifications
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                  - 'sns:Subscribe'
+                  - 'sns:Unsubscribe'
+                Resource:
+                  - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${EnvironmentName}-*'
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogStreams'
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/ec2/${EnvironmentName}*'
+              # KMS for encryption
+              - Effect: Allow
+                Action:
+                  - 'kms:Decrypt'
+                  - 'kms:Encrypt'
+                  - 'kms:GenerateDataKey'
+                Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-ec2-role'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${EnvironmentName}-ec2-profile'
+      Roles:
+        - !Ref EC2InstanceRole
+
+  # KMS Key for encryption
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub 'KMS key for ${EnvironmentName} encryption'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow services to use the key
+            Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+                - dynamodb.amazonaws.com
+                - rds.amazonaws.com
+                - logs.amazonaws.com
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:DescribeKey'
+            Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-kms-key'
+
+  KMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${EnvironmentName}-key'
+      TargetKeyId: !Ref KMSKey
+
+Outputs:
+  ALBSecurityGroupId:
+    Description: ALB Security Group ID
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-alb-sg-id'
+
+  EC2SecurityGroupId:
+    Description: EC2 Security Group ID
+    Value: !Ref EC2SecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-ec2-sg-id'
+
+  DBSecurityGroupId:
+    Description: Database Security Group ID
+    Value: !Ref DBSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-db-sg-id'
+
+  EC2InstanceRoleArn:
+    Description: EC2 Instance Role ARN
+    Value: !GetAtt EC2InstanceRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-ec2-role-arn'
+
+  EC2InstanceProfileArn:
+    Description: EC2 Instance Profile ARN
+    Value: !GetAtt EC2InstanceProfile.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-ec2-profile-arn'
+
+  KMSKeyId:
+    Description: KMS Key ID
+    Value: !Ref KMSKey
+    Export:
+      Name: !Sub '${EnvironmentName}-kms-key-id'
+
+  KMSKeyArn:
+    Description: KMS Key ARN
+    Value: !GetAtt KMSKey.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-kms-key-arn'
+
+  
+  EC2InstanceProfile:
+    Description: EC2 Instance Profile
+    Value: !Ref EC2InstanceProfile
+
+  EC2InstanceRole:
+    Description: EC2 IAM Role
+    Value: !Ref EC2InstanceRole

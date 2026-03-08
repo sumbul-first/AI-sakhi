@@ -1,0 +1,267 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AI Sakhi - Application Stack - Single AZ (Cost Optimized)'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+  VpcId:
+    Type: String
+  PublicSubnetId:
+    Type: String
+  PrivateSubnetId:
+    Type: String
+  ALBSecurityGroupId:
+    Type: String
+  EC2SecurityGroupId:
+    Type: String
+  InstanceType:
+    Type: String
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+  MinSize:
+    Type: Number
+  MaxSize:
+    Type: Number
+  DesiredCapacity:
+    Type: Number
+  ApplicationPort:
+    Type: Number
+  ContentBucketName:
+    Type: String
+  SessionTableName:
+    Type: String
+  DBEndpoint:
+    Type: String
+  DBName:
+    Type: String
+  EC2InstanceProfile:
+    Type: String
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-05c13eab67c5d8861
+    us-west-2:
+      AMI: ami-0d70546e43a941d70
+    eu-west-1:
+      AMI: ami-0d71ea30463e0ff8d
+    ap-south-1:
+      AMI: ami-0f58b397bc5c1f2e8
+
+Resources:
+
+  ##################################
+  # Application Load Balancer
+  ##################################
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${EnvironmentName}-alb'
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      Subnets:
+        - !Ref PublicSubnetId
+        - !Ref SecondaryPublicSubnet
+      SecurityGroups:
+        - !Ref ALBSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-alb'
+
+  ##################################
+  # Secondary Subnet for ALB
+  ##################################
+
+  SecondaryPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-public-subnet-2'
+
+  SecondaryPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !ImportValue
+        Fn::Sub: '${EnvironmentName}-public-route-table'
+      SubnetId: !Ref SecondaryPublicSubnet
+
+  ##################################
+  # Target Group
+  ##################################
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: !Ref ApplicationPort
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      HealthCheckEnabled: true
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      Matcher:
+        HttpCode: '200'
+
+  ##################################
+  # ALB Listener
+  ##################################
+
+  ALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  ##################################
+  # IAM Role
+  ##################################
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      #RoleName: !Sub '${EnvironmentName}-ec2-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+
+  
+  #EC2InstanceProfile:
+    #Type: AWS::IAM::InstanceProfile
+    #Properties:
+      #InstanceProfileName: !Sub '${EnvironmentName}-ec2-profile'
+      #Roles:
+        #- !Ref EC2Role
+
+  ##################################
+  # Launch Template
+  ##################################
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${EnvironmentName}-launch-template'
+      LaunchTemplateData:
+        ImageId: !FindInMap [RegionMap, !Ref AWS::Region, AMI]
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyPairName
+
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
+
+        SecurityGroupIds:
+          - !Ref EC2SecurityGroupId
+
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y python3 git
+            mkdir -p /opt/ai-sakhi
+            cd /opt/ai-sakhi
+            echo "AI Sakhi instance started" > status.txt
+
+  ##################################
+  # Auto Scaling Group
+  ##################################
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub '${EnvironmentName}-asg'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnetId
+      TargetGroupARNs:
+        - !Ref TargetGroup
+
+  ##################################
+  # Scaling Policy
+  ##################################
+
+  ScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 70
+
+  ##################################
+  # CloudFront
+  ##################################
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: ALBOrigin
+            DomainName: !GetAtt ApplicationLoadBalancer.DNSName
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        DefaultCacheBehavior:
+          TargetOriginId: ALBOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: true
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+Outputs:
+
+  ApplicationURL:
+    Description: ALB URL
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+
+  CloudFrontURL:
+    Description: CloudFront URL
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+
+  AutoScalingGroupName:
+    Description: ASG Name
+    Value: !Ref AutoScalingGroup
+
+  TargetGroupArn:
+    Description: Target Group
+    Value: !Ref TargetGroup
+
+  
+
+  ALBFullName:
+    Description: Full name of the Application Load Balancer
+    Value: !GetAtt ApplicationLoadBalancer.LoadBalancerFullName

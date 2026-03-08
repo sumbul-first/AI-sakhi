@@ -1,0 +1,331 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AI Sakhi - Main CloudFormation Stack - Single AZ (Cost Optimized)'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Environment Configuration"
+        Parameters:
+          - EnvironmentName
+          - EnvironmentType
+      - Label:
+          default: "Network Configuration"
+        Parameters:
+          - VpcCIDR
+          - PublicSubnetCIDR
+          - PrivateSubnetCIDR
+      - Label:
+          default: "Application Configuration"
+        Parameters:
+          - ApplicationPort
+          - InstanceType
+          - KeyPairName
+          - MinSize
+          - MaxSize
+          - DesiredCapacity
+      - Label:
+          default: "Database Configuration"
+        Parameters:
+          - DBInstanceClass
+          - DBAllocatedStorage
+          - DBUsername
+          - DBPassword
+      - Label:
+          default: "S3 Configuration"
+        Parameters:
+          - ContentBucketName
+
+Parameters:
+
+  SessionTableName:
+    Type: String
+    Default: session-table
+
+  DBName:
+    Type: String
+    Default: appdb
+
+  DBEndpoint:
+    Type: String
+    Default: localhost
+
+
+  EnvironmentName:
+    Type: String
+    Default: ai-sakhi
+    Description: Environment name prefix for all resources
+    
+  EnvironmentType:
+    Type: String
+    Default: development
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment type
+    
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for VPC
+    
+  PublicSubnetCIDR:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR block for public subnet
+    
+  PrivateSubnetCIDR:
+    Type: String
+    Default: 10.0.11.0/24
+    Description: CIDR block for private subnet
+    
+  ApplicationPort:
+    Type: Number
+    Default: 8080
+    Description: Application port number
+    
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+    Description: EC2 instance type
+    
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 Key Pair for SSH access
+    
+  MinSize:
+    Type: Number
+    Default: 1
+    Description: Minimum number of EC2 instances
+    
+  MaxSize:
+    Type: Number
+    Default: 3
+    Description: Maximum number of EC2 instances
+    
+  DesiredCapacity:
+    Type: Number
+    Default: 1
+    Description: Desired number of EC2 instances
+    
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+    Description: RDS instance type
+    
+  DBAllocatedStorage:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    MaxValue: 100
+    Description: Database storage size in GB
+    
+  DBUsername:
+    Type: String
+    Default: aisakhi_admin
+    Description: Database master username
+    NoEcho: true
+    
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Database master password (min 8 characters)
+    
+  ContentBucketName:
+    Type: String
+    Default: ai-sakhi-content-cost-opt
+    Description: S3 bucket name for content storage
+
+    
+
+Resources:
+  # Network Stack (Single AZ)
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: network-stack-single-az.yaml
+      TemplateURL: !Sub 'https://ai-sakhi-cfn-templates-${AWS::AccountId}.s3.amazonaws.com/cloudformation/network-stack-single-az.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcCIDR: !Ref VpcCIDR
+        PublicSubnetCIDR: !Ref PublicSubnetCIDR
+        PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-network-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+        - Key: Deployment
+          Value: Single-AZ
+
+  # Security Stack
+  SecurityStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NetworkStack
+    Properties:
+      #TemplateURL: security-stack.yaml
+      TemplateURL: !Sub 'https://ai-sakhi-cfn-templates-${AWS::AccountId}.s3.amazonaws.com/cloudformation/security-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        ApplicationPort: !Ref ApplicationPort
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-security-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Storage Stack
+  StorageStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: storage-stack.yaml
+      TemplateURL: !Sub 'https://ai-sakhi-cfn-templates-${AWS::AccountId}.s3.amazonaws.com/cloudformation/storage-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        ContentBucketName: !Ref ContentBucketName
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-storage-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Database Stack (Single AZ)
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - NetworkStack
+      - SecurityStack
+    Properties:
+      #TemplateURL: database-stack-single-az.yaml
+      TemplateURL: !Sub 'https://ai-sakhi-cfn-templates-${AWS::AccountId}.s3.amazonaws.com/cloudformation/database-stack-single-az.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        DBInstanceClass: !Ref DBInstanceClass
+        DBAllocatedStorage: !Ref DBAllocatedStorage
+        DBUsername: !Ref DBUsername
+        DBPassword: !Ref DBPassword
+        #VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        PrivateSubnet1: !GetAtt NetworkStack.Outputs.PrivateSubnet1
+        PrivateSubnet2: !GetAtt NetworkStack.Outputs.PrivateSubnet2
+        #PrivateSubnetId: !GetAtt NetworkStack.Outputs.PrivateSubnetId
+        DBSecurityGroupId: !GetAtt SecurityStack.Outputs.DBSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-database-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+        - Key: Deployment
+          Value: Single-AZ
+
+  # Application Stack (Single AZ)
+  ApplicationStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - NetworkStack
+      - SecurityStack
+      - StorageStack
+      - DatabaseStack
+    Properties:
+      #TemplateURL: application-stack-single-az.yaml
+      TemplateURL: !Sub 'https://ai-sakhi-cfn-templates-${AWS::AccountId}.s3.amazonaws.com/cloudformation/application-stack-single-az.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        PublicSubnetId: !GetAtt NetworkStack.Outputs.PublicSubnetId
+        PrivateSubnetId: !GetAtt NetworkStack.Outputs.PrivateSubnetId
+        ALBSecurityGroupId: !GetAtt SecurityStack.Outputs.ALBSecurityGroupId
+        EC2SecurityGroupId: !GetAtt SecurityStack.Outputs.EC2SecurityGroupId
+        InstanceType: !Ref InstanceType
+        KeyPairName: !Ref KeyPairName
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+        DesiredCapacity: !Ref DesiredCapacity
+        ApplicationPort: !Ref ApplicationPort
+        ContentBucketName: !GetAtt StorageStack.Outputs.ContentBucketName
+        SessionTableName: !GetAtt StorageStack.Outputs.SessionTableName
+        DBEndpoint: !GetAtt DatabaseStack.Outputs.DBEndpoint
+        DBName: !GetAtt DatabaseStack.Outputs.DBName
+
+        ContentBucketName: !Ref ContentBucketName
+        SessionTableName: !Ref SessionTableName
+        DBName: !Ref DBName
+        DBEndpoint: !Ref DBEndpoint
+        EC2InstanceProfile: !GetAtt SecurityStack.Outputs.EC2InstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-application-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+        - Key: Deployment
+          Value: Single-AZ
+
+  # Monitoring Stack
+  #MonitoringStack:
+    #Type: AWS::CloudFormation::Stack
+    #DependsOn: ApplicationStack
+    #Properties:
+      #TemplateURL: monitoring-stack.yaml
+      #TemplateURL: !Sub 'https://ai-sakhi-cfn-templates-${AWS::AccountId}.s3.amazonaws.com/cloudformation/monitoring-stack.yaml'
+      #Parameters:
+        #EnvironmentName: !Ref EnvironmentName
+        #ALBFullName: !GetAtt ApplicationStack.Outputs.ALBFullName
+        #AutoScalingGroupName: !GetAtt ApplicationStack.Outputs.AutoScalingGroupName
+        #DBInstanceIdentifier: !GetAtt DatabaseStack.Outputs.DBInstanceIdentifier
+      #Tags:
+        #- Key: Name
+          #Value: !Sub '${EnvironmentName}-monitoring-stack'
+        #- Key: Environment
+          #Value: !Ref EnvironmentType
+
+Outputs:
+  ApplicationURL:
+    Description: Application Load Balancer URL
+    Value: !GetAtt ApplicationStack.Outputs.ApplicationURL
+    Export:
+      Name: !Sub '${EnvironmentName}-application-url'
+      
+  ContentBucketName:
+    Description: S3 Content Bucket Name
+    Value: !GetAtt StorageStack.Outputs.ContentBucketName
+    Export:
+      Name: !Sub '${EnvironmentName}-content-bucket'
+      
+  SessionTableName:
+    Description: DynamoDB Session Table Name
+    Value: !GetAtt StorageStack.Outputs.SessionTableName
+    Export:
+      Name: !Sub '${EnvironmentName}-session-table'
+      
+  DBEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt DatabaseStack.Outputs.DBEndpoint
+    Export:
+      Name: !Sub '${EnvironmentName}-db-endpoint'
+      
+  VpcId:
+    Description: VPC ID
+    Value: !GetAtt NetworkStack.Outputs.VpcId
+    Export:
+      Name: !Sub '${EnvironmentName}-vpc-id'
+      
+  #CloudWatchDashboardURL:
+    #Description: CloudWatch Dashboard URL
+    #Value: !GetAtt MonitoringStack.Outputs.DashboardURL
+    #Export:
+      #Name: !Sub '${EnvironmentName}-dashboard-url'
+
+  CostSavings:
+    Description: Cost optimization notes
+    Value: "Single-AZ deployment: ~40-50% cost reduction vs Multi-AZ"

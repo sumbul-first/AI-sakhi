@@ -1,0 +1,312 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AI Sakhi - Main CloudFormation Stack (Master Template)'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Environment Configuration"
+        Parameters:
+          - EnvironmentName
+          - EnvironmentType
+      - Label:
+          default: "Network Configuration"
+        Parameters:
+          - VpcCIDR
+          - PublicSubnet1CIDR
+          - PublicSubnet2CIDR
+          - PrivateSubnet1CIDR
+          - PrivateSubnet2CIDR
+      - Label:
+          default: "Application Configuration"
+        Parameters:
+          - ApplicationPort
+          - InstanceType
+          - KeyPairName
+          - MinSize
+          - MaxSize
+          - DesiredCapacity
+      - Label:
+          default: "Database Configuration"
+        Parameters:
+          - DBInstanceClass
+          - DBAllocatedStorage
+          - DBUsername
+          - DBPassword
+      - Label:
+          default: "S3 Configuration"
+        Parameters:
+          - ContentBucketName
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: ai-sakhi
+    Description: Environment name prefix for all resources
+    
+  EnvironmentType:
+    Type: String
+    Default: development
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment type
+    
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for VPC
+    
+  PublicSubnet1CIDR:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR block for public subnet 1
+    
+  PublicSubnet2CIDR:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: CIDR block for public subnet 2
+    
+  PrivateSubnet1CIDR:
+    Type: String
+    Default: 10.0.11.0/24
+    Description: CIDR block for private subnet 1
+    
+  PrivateSubnet2CIDR:
+    Type: String
+    Default: 10.0.12.0/24
+    Description: CIDR block for private subnet 2
+    
+  ApplicationPort:
+    Type: Number
+    Default: 8080
+    Description: Application port number
+    
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+    Description: EC2 instance type
+    
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 Key Pair for SSH access
+    
+  MinSize:
+    Type: Number
+    Default: 2
+    Description: Minimum number of EC2 instances
+    
+  MaxSize:
+    Type: Number
+    Default: 6
+    Description: Maximum number of EC2 instances
+    
+  DesiredCapacity:
+    Type: Number
+    Default: 2
+    Description: Desired number of EC2 instances
+    
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.medium
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
+    Description: RDS instance type
+    
+  DBAllocatedStorage:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    MaxValue: 100
+    Description: Database storage size in GB
+    
+  DBUsername:
+    Type: String
+    Default: aisakhi_admin
+    Description: Database master username
+    NoEcho: true
+    
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Database master password (min 8 characters)
+    
+  ContentBucketName:
+    Type: String
+    Default: ai-sakhi-content-cost-opt
+    Description: S3 bucket name for content storage
+
+Resources:
+  # Network Stack
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${ContentBucketName}/cloudformation/network-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        VpcCIDR: !Ref VpcCIDR
+        PublicSubnet1CIDR: !Ref PublicSubnet1CIDR
+        PublicSubnet2CIDR: !Ref PublicSubnet2CIDR
+        PrivateSubnet1CIDR: !Ref PrivateSubnet1CIDR
+        PrivateSubnet2CIDR: !Ref PrivateSubnet2CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-network-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Security Stack
+  SecurityStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NetworkStack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${ContentBucketName}/cloudformation/security-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        ApplicationPort: !Ref ApplicationPort
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-security-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Storage Stack (S3, DynamoDB)
+  StorageStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${ContentBucketName}/cloudformation/storage-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        ContentBucketName: !Ref ContentBucketName
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-storage-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Database Stack (RDS)
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - NetworkStack
+      - SecurityStack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${ContentBucketName}/cloudformation/database-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        DBInstanceClass: !Ref DBInstanceClass
+        DBAllocatedStorage: !Ref DBAllocatedStorage
+        DBUsername: !Ref DBUsername
+        DBPassword: !Ref DBPassword
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        PrivateSubnet1Id: !GetAtt NetworkStack.Outputs.PrivateSubnet1Id
+        PrivateSubnet2Id: !GetAtt NetworkStack.Outputs.PrivateSubnet2Id
+        DBSecurityGroupId: !GetAtt SecurityStack.Outputs.DBSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-database-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Application Stack (EC2, ALB, Auto Scaling)
+  ApplicationStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - NetworkStack
+      - SecurityStack
+      - StorageStack
+      - DatabaseStack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${ContentBucketName}/cloudformation/application-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        PublicSubnet1Id: !GetAtt NetworkStack.Outputs.PublicSubnet1Id
+        PublicSubnet2Id: !GetAtt NetworkStack.Outputs.PublicSubnet2Id
+        PrivateSubnet1Id: !GetAtt NetworkStack.Outputs.PrivateSubnet1Id
+        PrivateSubnet2Id: !GetAtt NetworkStack.Outputs.PrivateSubnet2Id
+        ALBSecurityGroupId: !GetAtt SecurityStack.Outputs.ALBSecurityGroupId
+        EC2SecurityGroupId: !GetAtt SecurityStack.Outputs.EC2SecurityGroupId
+        InstanceType: !Ref InstanceType
+        KeyPairName: !Ref KeyPairName
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+        DesiredCapacity: !Ref DesiredCapacity
+        ApplicationPort: !Ref ApplicationPort
+        ContentBucketName: !GetAtt StorageStack.Outputs.ContentBucketName
+        SessionTableName: !GetAtt StorageStack.Outputs.SessionTableName
+        DBEndpoint: !GetAtt DatabaseStack.Outputs.DBEndpoint
+        DBName: !GetAtt DatabaseStack.Outputs.DBName
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-application-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  # Monitoring Stack (CloudWatch, CloudTrail)
+  MonitoringStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ApplicationStack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${ContentBucketName}/cloudformation/monitoring-stack.yaml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        ALBFullName: !GetAtt ApplicationStack.Outputs.ALBFullName
+        AutoScalingGroupName: !GetAtt ApplicationStack.Outputs.AutoScalingGroupName
+        DBInstanceIdentifier: !GetAtt DatabaseStack.Outputs.DBInstanceIdentifier
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-monitoring-stack'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+Outputs:
+  ApplicationURL:
+    Description: Application Load Balancer URL
+    Value: !GetAtt ApplicationStack.Outputs.ApplicationURL
+    Export:
+      Name: !Sub '${EnvironmentName}-application-url'
+      
+  ContentBucketName:
+    Description: S3 Content Bucket Name
+    Value: !GetAtt StorageStack.Outputs.ContentBucketName
+    Export:
+      Name: !Sub '${EnvironmentName}-content-bucket'
+      
+  SessionTableName:
+    Description: DynamoDB Session Table Name
+    Value: !GetAtt StorageStack.Outputs.SessionTableName
+    Export:
+      Name: !Sub '${EnvironmentName}-session-table'
+      
+  DBEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt DatabaseStack.Outputs.DBEndpoint
+    Export:
+      Name: !Sub '${EnvironmentName}-db-endpoint'
+      
+  VpcId:
+    Description: VPC ID
+    Value: !GetAtt NetworkStack.Outputs.VpcId
+    Export:
+      Name: !Sub '${EnvironmentName}-vpc-id'
+      
+  CloudWatchDashboardURL:
+    Description: CloudWatch Dashboard URL
+    Value: !GetAtt MonitoringStack.Outputs.DashboardURL
+    Export:
+      Name: !Sub '${EnvironmentName}-dashboard-url'

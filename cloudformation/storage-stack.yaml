@@ -1,0 +1,283 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AI Sakhi - Storage Resources (S3, DynamoDB)'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: Environment name prefix
+    
+  ContentBucketName:
+    Type: String
+    Description: S3 bucket name for content storage
+
+Resources:
+  # S3 Bucket for Content Storage
+  ContentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ContentBucketName}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionToIA
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 90
+                StorageClass: INTELLIGENT_TIERING
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-content-bucket'
+
+  # S3 Bucket Policy
+  ContentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ContentBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt ContentBucket.Arn
+              - !Sub '${ContentBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
+
+  # S3 Bucket for Static Assets
+  StaticAssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${EnvironmentName}-static-assets-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-static-assets'
+
+  # Static Assets Bucket Policy (for CloudFront)
+  StaticAssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StaticAssetsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${StaticAssetsBucket.Arn}/*'
+
+  # DynamoDB Table for Session Management
+  SessionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-sessions'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: N
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-sessions-table'
+
+  # DynamoDB Table for User Interactions
+  InteractionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-interactions'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: interaction_id
+          AttributeType: S
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: interaction_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: SessionIdIndex
+          KeySchema:
+            - AttributeName: session_id
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-interactions-table'
+
+  # DynamoDB Table for Reminders
+  RemindersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-reminders'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: reminder_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: scheduled_time
+          AttributeType: N
+      KeySchema:
+        - AttributeName: reminder_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdScheduledTimeIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: scheduled_time
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-reminders-table'
+
+  # SNS Topic for Notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${EnvironmentName}-notifications'
+      DisplayName: AI Sakhi Notifications
+      KmsMasterKeyId: alias/aws/sns
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-notifications-topic'
+
+Outputs:
+  ContentBucketName:
+    Description: Content S3 Bucket Name
+    Value: !Ref ContentBucket
+    Export:
+      Name: !Sub '${EnvironmentName}-content-bucket-name'
+
+  ContentBucketArn:
+    Description: Content S3 Bucket ARN
+    Value: !GetAtt ContentBucket.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-content-bucket-arn'
+
+  StaticAssetsBucketName:
+    Description: Static Assets S3 Bucket Name
+    Value: !Ref StaticAssetsBucket
+    Export:
+      Name: !Sub '${EnvironmentName}-static-assets-bucket-name'
+
+  StaticAssetsBucketArn:
+    Description: Static Assets S3 Bucket ARN
+    Value: !GetAtt StaticAssetsBucket.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-static-assets-bucket-arn'
+
+  SessionTableName:
+    Description: Session DynamoDB Table Name
+    Value: !Ref SessionTable
+    Export:
+      Name: !Sub '${EnvironmentName}-session-table-name'
+
+  SessionTableArn:
+    Description: Session DynamoDB Table ARN
+    Value: !GetAtt SessionTable.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-session-table-arn'
+
+  InteractionsTableName:
+    Description: Interactions DynamoDB Table Name
+    Value: !Ref InteractionsTable
+    Export:
+      Name: !Sub '${EnvironmentName}-interactions-table-name'
+
+  RemindersTableName:
+    Description: Reminders DynamoDB Table Name
+    Value: !Ref RemindersTable
+    Export:
+      Name: !Sub '${EnvironmentName}-reminders-table-name'
+
+  NotificationTopicArn:
+    Description: SNS Notification Topic ARN
+    Value: !Ref NotificationTopic
+    Export:
+      Name: !Sub '${EnvironmentName}-notification-topic-arn'

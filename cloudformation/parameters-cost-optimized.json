@@ -1,0 +1,66 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "ai-sakhi-cost-opt"
+  },
+  {
+    "ParameterKey": "EnvironmentType",
+    "ParameterValue": "development"
+  },
+  {
+    "ParameterKey": "VpcCIDR",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "PublicSubnetCIDR",
+    "ParameterValue": "10.0.1.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnetCIDR",
+    "ParameterValue": "10.0.11.0/24"
+  },
+  {
+    "ParameterKey": "ApplicationPort",
+    "ParameterValue": "8080"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3.micro"
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "sakhiEC2_kp"
+  },
+  {
+    "ParameterKey": "MinSize",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "MaxSize",
+    "ParameterValue": "2"
+  },
+  {
+    "ParameterKey": "DesiredCapacity",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "DBInstanceClass",
+    "ParameterValue": "db.t3.micro"
+  },
+  {
+    "ParameterKey": "DBAllocatedStorage",
+    "ParameterValue": "20"
+  },
+  {
+    "ParameterKey": "DBUsername",
+    "ParameterValue": "aisakhi_admin"
+  },
+  {
+    "ParameterKey": "DBPassword",
+    "ParameterValue": "sakhiDB-pwd"
+  },
+  {
+    "ParameterKey": "ContentBucketName",
+    "ParameterValue": "ai-sakhi-content-cost-opt"
+  }
+]

@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AI Sakhi - RDS PostgreSQL Database - Single AZ (Cost Optimized)'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: Environment name prefix
+
+  DBInstanceClass:
+    Type: String
+    Description: RDS instance type
+
+  DBAllocatedStorage:
+    Type: Number
+    Description: Database storage size in GB
+
+  DBUsername:
+    Type: String
+    Description: Database master username
+    NoEcho: true
+
+  DBPassword:
+    Type: String
+    Description: Database master password
+    NoEcho: true
+
+  PrivateSubnet1:
+    Type: String
+    Description: Private Subnet 1
+
+  PrivateSubnet2:
+    Type: String
+    Description: Private Subnet 2
+
+  DBSecurityGroupId:
+    Type: String
+    Description: Database Security Group ID
+
+
+Resources:
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub '${EnvironmentName}-db-subnet-group'
+      DBSubnetGroupDescription: Subnet group for AI Sakhi RDS database
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-subnet-group'
+
+
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      DBParameterGroupName: !Sub '${EnvironmentName}-db-params'
+      Description: Custom parameter group for AI Sakhi database
+      Family: postgres15
+      Parameters:
+        shared_preload_libraries: pg_stat_statements
+        log_statement: all
+        log_min_duration_statement: 1000
+        max_connections: 100
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-params'
+
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub '${EnvironmentName}-db'
+      DBName: aisakhi
+      Engine: postgres
+      EngineVersion: "15"
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      DBParameterGroupName: !Ref DBParameterGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroupId
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      EnableCloudwatchLogsExports:
+        - postgresql
+        - upgrade
+      DeletionProtection: false
+      CopyTagsToSnapshot: true
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt RDSMonitoringRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db'
+        - Key: Deployment
+          Value: Single-AZ
+
+
+  RDSMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-rds-monitoring-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
+
+
+  DBHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${EnvironmentName}-db-high-cpu'
+      AlarmDescription: Alert when database CPU exceeds 80%
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstance
+
+
+  DBLowStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${EnvironmentName}-db-low-storage'
+      AlarmDescription: Alert when database free storage is low
+      MetricName: FreeStorageSpace
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 2000000000
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstance
+
+Outputs:
+
+  DBEndpoint:
+    Description: Database endpoint
+    Value: !GetAtt DBInstance.Endpoint.Address
+
+  DBName:
+    Description: Database name
+    Value: aisakhi
+
+  DBInstanceIdentifier:
+    Description: DB Instance Identifier
+    Value: !Ref DBInstance
