@@ -111,9 +111,9 @@ class VoiceInterface:
             self._interaction_stats['total_interactions'] += 1
             
             # Get or create session
-            session = self.session_manager.get_session(session_id)
-            if not session:
-                session = self.session_manager.create_session(language_code or 'hi')
+            user_session = self.session_manager.get_session(session_id)
+            if not user_session:
+                user_session = self.session_manager.create_session(language_code or 'hi')
             
             # Process voice query
             voice_result = self.speech_processor.process_voice_query(audio_data, language_code)
@@ -121,7 +121,7 @@ class VoiceInterface:
             if not voice_result['success']:
                 return self._handle_voice_processing_failure(
                     voice_result.get('error', 'Unknown error'), session_id, 
-                    language_code or session.language, start_time
+                    language_code or user_session.language_preference, start_time
                 )
             
             # Extract results
@@ -135,7 +135,7 @@ class VoiceInterface:
                 return self._handle_emergency(user_query, session_id, detected_language, start_time)
             
             # Route to module
-            module_name, module_response = self._route_to_module(user_query, detected_language, session)
+            module_name, module_response = self._route_to_module(user_query, detected_language, user_session)
             
             # Generate audio response
             audio_result = self.speech_processor.synthesize_speech(module_response, detected_language)
@@ -181,10 +181,11 @@ class VoiceInterface:
         start_time = time.time()
         
         try:
-            # Get or create session
-            session = self.session_manager.get_session(session_id)
-            if not session:
-                session = self.session_manager.create_session(language_code)
+            # Get or create session - reuse existing if available
+            user_session = self.session_manager.get_session(session_id)
+            if not user_session:
+                # Only create if truly not found (e.g. expired)
+                user_session = self.session_manager.create_session(language_code)
             
             # Check for emergency
             emergency_detected = self._detect_emergency(text)
@@ -192,7 +193,7 @@ class VoiceInterface:
                 return self._handle_emergency(text, session_id, language_code, start_time)
             
             # Route to module
-            module_name, module_response = self._route_to_module(text, language_code, session)
+            module_name, module_response = self._route_to_module(text, language_code, user_session)
             
             # Generate audio response
             audio_result = self.speech_processor.synthesize_speech(module_response, language_code)

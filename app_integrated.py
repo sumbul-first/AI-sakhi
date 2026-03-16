@@ -260,6 +260,11 @@ def inject_locale():
     """Inject get_locale function into template context."""
     return dict(get_locale=get_locale)
 
+@app.before_request
+def make_session_permanent():
+    """Ensure session is always permanent so the cookie persists across requests."""
+    session.permanent = True
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -330,11 +335,19 @@ logger.info("AI Sakhi initialization complete!")
 def get_or_create_session_id() -> str:
     """Get existing session ID or create a new one."""
     if 'session_id' not in session:
-        # Create new session
+        # Create new session in session_manager
         language = session.get('language', 'hi')
         user_session = session_manager.create_session(language)
         session['session_id'] = user_session.session_id
-        logger.info(f"Created new session: {user_session.session_id}")
+        logger.info(f"Created new session: {user_session.session_id} with language {language}")
+    else:
+        # Ensure the session still exists in session_manager (may have expired)
+        sid = session['session_id']
+        if not session_manager.get_session(sid):
+            language = session.get('language', 'hi')
+            user_session = session_manager.create_session(language)
+            session['session_id'] = user_session.session_id
+            logger.info(f"Re-created expired session: {user_session.session_id}")
     return session['session_id']
 
 
