@@ -1411,3 +1411,193 @@ def validate_content_safety(content_item: ContentItem) -> bool:
     except Exception as e:
         logging.error(f"Error validating content safety for {content_item.content_id}: {e}")
         return False
+
+
+class ContentSyncMonitor:
+    """
+    Monitors S3 content synchronization status and provides downtime prevention.
+
+    Tracks when content was last checked/synced, exposes sync status, and can
+    run background polling to detect S3 updates without interrupting service.
+
+    Requirements: 8.5
+    """
+
+    STALE_THRESHOLD_SECONDS = 3600  # content is "stale" after 1 hour without a check
+
+    def __init__(
+        self,
+        content_manager: ContentManager,
+        cloudwatch_logger=None,
+        check_interval_seconds: int = 300,
+    ) -> None:
+        self._content_manager = content_manager
+        self._cloudwatch_logger = cloudwatch_logger
+        self._check_interval = check_interval_seconds
+
+        self._last_check: Optional[datetime] = None
+        self._last_sync: Optional[datetime] = None
+        self._lock = threading.Lock()
+
+        self._monitor_thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
+
+        self._logger = logging.getLogger(__name__)
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def get_sync_status(self) -> Dict[str, Any]:
+        """Return current synchronization status."""
+        with self._lock:
+            last_check = self._last_check
+            last_sync = self._last_sync
+
+        # Count content items per module from mock metadata
+        content_counts: Dict[str, int] = {}
+        try:
+            by_module = self._content_manager._mock_content_metadata.get("by_module", {})
+            for module, items in by_module.items():
+                content_counts[module] = len(items)
+        except Exception:
+            pass
+
+        is_stale = True
+        if last_check is not None:
+            age = (datetime.now(timezone.utc) - last_check).total_seconds()
+            is_stale = age > self.STALE_THRESHOLD_SECONDS
+
+        return {
+            "status": "stale" if is_stale else "ok",
+            "last_check": last_check.isoformat() if last_check else None,
+            "last_sync": last_sync.isoformat() if last_sync else None,
+            "content_counts": content_counts,
+            "is_stale": is_stale,
+            "check_interval_seconds": self._check_interval,
+            "monitoring_active": (
+                self._monitor_thread is not None and self._monitor_thread.is_alive()
+            ),
+        }
+
+    def check_for_updates(self) -> bool:
+        """
+        Check whether S3 content has changed since the last sync.
+
+        In mock mode this always returns False (no real S3 to poll).
+        Logs the result via cloudwatch_logger when available.
+
+        Returns:
+            True if new/updated content was detected, False otherwise.
+        """
+        updates_found = False
+
+        try:
+            if not self._content_manager.use_mock:
+                # Real S3 check would compare ETags / LastModified timestamps here.
+                # Placeholder: delegate to the existing synchronize_content_from_s3.
+                result = self._content_manager.synchronize_content_from_s3(force_sync=False)
+                updates_found = (
+                    result.get("new_content_count", 0) > 0
+                    or result.get("updated_content_count", 0) > 0
+                )
+            # mock mode: no updates
+
+            with self._lock:
+                self._last_check = datetime.now(timezone.utc)
+
+            if self._cloudwatch_logger:
+                try:
+                    self._cloudwatch_logger.log_session_event(
+                        session_id="system",
+                        event_type="content_sync_check",
+                        data={
+                            "updates_found": updates_found,
+                            "mock_mode": self._content_manager.use_mock,
+                        },
+                    )
+                except Exception as log_err:
+                    self._logger.warning("CloudWatch log failed: %s", log_err)
+
+        except Exception as exc:
+            self._logger.error("check_for_updates failed: %s", exc)
+            if self._cloudwatch_logger:
+                try:
+                    self._cloudwatch_logger.log_error(
+                        error_type="content_sync_check_error",
+                        error_message=str(exc),
+                    )
+                except Exception:
+                    pass
+
+        return updates_found
+
+    def force_sync(self) -> Dict[str, Any]:
+        """
+        Trigger an immediate content refresh.
+
+        In mock mode this clears the content cache and records the sync time.
+
+        Returns:
+            Status dict from get_sync_status() after the sync.
+        """
+        try:
+            if self._content_manager.use_mock:
+                self._content_manager.cache.clear()
+                self._logger.info("ContentSyncMonitor: mock force_sync – cache cleared")
+            else:
+                self._content_manager.synchronize_content_from_s3(force_sync=True)
+
+            with self._lock:
+                self._last_check = datetime.now(timezone.utc)
+                self._last_sync = datetime.now(timezone.utc)
+
+            if self._cloudwatch_logger:
+                try:
+                    self._cloudwatch_logger.log_session_event(
+                        session_id="system",
+                        event_type="content_sync_forced",
+                        data={"mock_mode": self._content_manager.use_mock},
+                    )
+                except Exception as log_err:
+                    self._logger.warning("CloudWatch log failed: %s", log_err)
+
+        except Exception as exc:
+            self._logger.error("force_sync failed: %s", exc)
+            if self._cloudwatch_logger:
+                try:
+                    self._cloudwatch_logger.log_error(
+                        error_type="content_sync_force_error",
+                        error_message=str(exc),
+                    )
+                except Exception:
+                    pass
+
+        return self.get_sync_status()
+
+    def start_background_monitoring(self) -> None:
+        """Start a daemon thread that calls check_for_updates() periodically."""
+        if self._monitor_thread and self._monitor_thread.is_alive():
+            self._logger.info("Background monitoring already running")
+            return
+
+        self._stop_event.clear()
+
+        def _run() -> None:
+            self._logger.info(
+                "ContentSyncMonitor: background monitoring started (interval=%ds)",
+                self._check_interval,
+            )
+            while not self._stop_event.wait(timeout=self._check_interval):
+                self.check_for_updates()
+            self._logger.info("ContentSyncMonitor: background monitoring stopped")
+
+        self._monitor_thread = threading.Thread(target=_run, daemon=True, name="content-sync-monitor")
+        self._monitor_thread.start()
+
+    def stop_background_monitoring(self) -> None:
+        """Stop the background monitoring thread."""
+        self._stop_event.set()
+        if self._monitor_thread:
+            self._monitor_thread.join(timeout=5)
+            self._monitor_thread = None

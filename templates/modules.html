@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Health Modules') }} - AI Sakhi{% endblock %}
+
+{% block content %}
+<div class="modules-container">
+    <div class="page-header">
+        <h1>{{ _('Health Education Modules') }}</h1>
+        <p class="subtitle">{{ _('Choose a module to learn more about women\'s health') }}</p>
+    </div>
+
+    <div class="modules-grid">
+        {% for module_id, module in modules.items() %}
+        <div class="module-card">
+            <div class="module-icon">{{ module.icon }}</div>
+            <h2 class="module-title">{{ _(module.name) }}</h2>
+            <p class="module-description">{{ _(module.description) }}</p>
+            <a href="{{ url_for('module_detail', module_name=module_id) }}" class="module-button">
+                {{ _('Learn More') }} →
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="emergency-banner">
+        <div class="emergency-icon">🆘</div>
+        <div class="emergency-content">
+            <h3>{{ _('Need Immediate Help?') }}</h3>
+            <p>{{ _('Access emergency contacts and helplines') }}</p>
+            <a href="{{ url_for('get_emergency_contacts') }}" class="emergency-button">
+                {{ _('Emergency Contacts') }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.modules-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: #d946a6;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.module-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+}
+
+.module-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.module-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.module-title {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.module-description {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.module-button {
+    display: inline-block;
+    background: linear-gradient(135deg, #d946a6 0%, #f97316 100%);
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+}
+
+.module-button:hover {
+    opacity: 0.9;
+}
+
+.emergency-banner {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.emergency-icon {
+    font-size: 4rem;
+}
+
+.emergency-content h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.emergency-content p {
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+
+.emergency-button {
+    display: inline-block;
+    background: white;
+    color: #dc2626;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.3s ease;
+}
+
+.emergency-button:hover {
+    background: #fee2e2;
+}
+
+@media (max-width: 768px) {
+    .modules-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .emergency-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}

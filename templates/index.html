@@ -28,35 +28,35 @@
 <div class="modules-preview">
     <h3 class="section-title">{{ _('Health Education Modules') }}</h3>
     <div class="modules-grid">
-        <div class="module-card" onclick="navigateToModule('puberty')">
+        <a href="{{ url_for('module_detail', module_name='puberty') }}" class="module-card">
             <div class="module-icon">🌸</div>
             <h4>{{ _('Puberty Education') }}</h4>
             <p>{{ _('Body changes, menstruation, and hygiene') }}</p>
-        </div>
+        </a>
         
-        <div class="module-card" onclick="navigateToModule('safety')">
+        <a href="{{ url_for('module_detail', module_name='safety') }}" class="module-card">
             <div class="module-icon">🛡️</div>
             <h4>{{ _('Safety & Mental Support') }}</h4>
             <p>{{ _('Good/bad touch awareness and emotional support') }}</p>
-        </div>
+        </a>
         
-        <div class="module-card" onclick="navigateToModule('menstrual')">
+        <a href="{{ url_for('module_detail', module_name='menstrual') }}" class="module-card">
             <div class="module-icon">🩸</div>
             <h4>{{ _('Menstrual Shopping Guide') }}</h4>
             <p>{{ _('Product comparison and selection guidance') }}</p>
-        </div>
+        </a>
         
-        <div class="module-card" onclick="navigateToModule('pregnancy')">
+        <a href="{{ url_for('module_detail', module_name='pregnancy') }}" class="module-card">
             <div class="module-icon">🤱</div>
             <h4>{{ _('Pregnancy Guidance') }}</h4>
             <p>{{ _('Nutrition tips and danger signs') }}</p>
-        </div>
+        </a>
         
-        <div class="module-card" onclick="navigateToModule('government')">
+        <a href="{{ url_for('module_detail', module_name='government') }}" class="module-card">
             <div class="module-icon">🏛️</div>
             <h4>{{ _('Government Resources') }}</h4>
             <p>{{ _('Health schemes and programs information') }}</p>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -105,13 +105,11 @@
 {% block scripts %}
 <script>
 function startVoiceInteraction() {
-    // Placeholder for voice interaction
-    alert('{{ _("Voice interaction will be implemented soon!") }}');
+    toggleVoice();
 }
 
 function navigateToModule(moduleName) {
-    // Placeholder for module navigation
-    alert('{{ _("Module navigation will be implemented soon!") }} - ' + moduleName);
+    window.location.href = '/modules/' + moduleName;
 }
 </script>
 {% endblock %}

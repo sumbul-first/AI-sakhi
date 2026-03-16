@@ -536,8 +536,7 @@ class LanguageSelector {
         if (languageCode === this.currentLanguage) {
             this.closeDropdown();
             return;
-        }
-        
+        }        
         console.log('Changing language to:', languageCode);
         
         // Show switching indicator
@@ -553,6 +552,7 @@ class LanguageSelector {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     preserve_session: true,
                     session_data: this.sessionData
@@ -564,6 +564,10 @@ class LanguageSelector {
             if (data.status === 'success') {
                 // Update current language
                 this.currentLanguage = languageCode;
+                
+                // Persist to localStorage and cookie immediately
+                localStorage.setItem('preferred_language', languageCode);
+                document.cookie = `preferred_language=${languageCode}; max-age=${60*60*24*30}; path=/; SameSite=Lax`;
                 
                 // Play confirmation audio
                 this.playLanguageChangeConfirmation(languageCode);
@@ -743,33 +747,32 @@ class LanguageSelector {
     }
     
     /**
-     * Get current language
+     * Get current language - priority: server-rendered select > cookie > HTML lang > default
      */
     getCurrentLanguage() {
-        // Try to get from URL parameter, session storage, or default to Hindi
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlLang = urlParams.get('lang');
-        
-        if (urlLang && this.supportedLanguages && this.supportedLanguages[urlLang]) {
-            return urlLang;
+        // 1. Server-rendered <select> is the most reliable source (set by Flask get_locale())
+        const select = document.getElementById('languageSelect');
+        if (select && select.value) {
+            return select.value;
         }
-        
-        const sessionLang = sessionStorage.getItem('ai_sakhi_language');
-        if (sessionLang && this.supportedLanguages && this.supportedLanguages[sessionLang]) {
-            return sessionLang;
+
+        // 2. Cookie set by server on language change
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)preferred_language=([^;]+)/);
+        if (cookieMatch && cookieMatch[1]) {
+            return cookieMatch[1];
         }
-        
-        // Try to get from HTML lang attribute
+
+        // 3. HTML lang attribute set by server
         const htmlLang = document.documentElement.lang;
-        if (htmlLang && this.supportedLanguages && this.supportedLanguages[htmlLang]) {
+        if (htmlLang && htmlLang.length === 2 && this.supportedLanguages && this.supportedLanguages[htmlLang]) {
             return htmlLang;
         }
-        
+
         return 'hi'; // Default to Hindi
     }
     
     /**
-     * Preserve session state
+     * Preserve session state (call during language change only)
      */
     async preserveSessionState() {
         try {
@@ -781,7 +784,7 @@ class LanguageSelector {
                 timestamp: Date.now()
             };
             
-            // Store in session storage
+            // Store in sessionStorage only (localStorage is updated on explicit language change)
             sessionStorage.setItem('ai_sakhi_session_data', JSON.stringify(this.sessionData));
             sessionStorage.setItem('ai_sakhi_language', this.currentLanguage);
             

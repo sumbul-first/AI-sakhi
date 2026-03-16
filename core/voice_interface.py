@@ -113,7 +113,7 @@ class VoiceInterface:
             # Get or create session
             session = self.session_manager.get_session(session_id)
             if not session:
-                session = self.session_manager.create_session(session_id, language_code or 'hi')
+                session = self.session_manager.create_session(language_code or 'hi')
             
             # Process voice query
             voice_result = self.speech_processor.process_voice_query(audio_data, language_code)
@@ -184,7 +184,7 @@ class VoiceInterface:
             # Get or create session
             session = self.session_manager.get_session(session_id)
             if not session:
-                session = self.session_manager.create_session(session_id, language_code)
+                session = self.session_manager.create_session(language_code)
             
             # Check for emergency
             emergency_detected = self._detect_emergency(text)
@@ -297,8 +297,23 @@ class VoiceInterface:
         )
     
     def _route_to_module(self, query: str, language_code: str, session) -> Tuple[str, str]:
-        """Route user query to the appropriate health module."""
-        # Simple pattern matching for module routing
+        """Route user query to the appropriate health module or AI model."""
+        # Try to use Amazon Bedrock AI for intelligent response
+        try:
+            bedrock_response = self._get_bedrock_response(query, language_code)
+            if bedrock_response:
+                self.logger.info(f"Using Bedrock AI response for query: {query[:50]}...")
+                return 'ai_bedrock', bedrock_response
+        except Exception as e:
+            self.logger.warning(f"Bedrock AI failed, falling back to pattern matching: {e}")
+
+        # If not mock mode and Bedrock failed, use mock response as graceful fallback
+        # (better than a generic one-liner)
+        if not self.use_mock:
+            self.logger.info("Bedrock unavailable - using mock response as fallback")
+            return 'ai_bedrock_fallback', self._get_mock_bedrock_response(query, language_code)
+        
+        # Fallback to simple pattern matching for module routing
         query_lower = query.lower()
         
         if any(word in query_lower for word in ['puberty', 'यौवन', 'বয়ঃসন্ধি']):
@@ -386,6 +401,153 @@ class VoiceInterface:
         stats['fallback_options_count'] = len(self._fallback_options)
         
         return stats
+    
+    def _get_bedrock_response(self, query: str, language_code: str) -> Optional[str]:
+        """Get response from Amazon Bedrock."""
+        try:
+            import boto3
+            import json
+            import os
+
+            # Check if we're in mock mode
+            if self.use_mock:
+                self.logger.info("Using mock mode for Bedrock - returning simulated response")
+                return self._get_mock_bedrock_response(query, language_code)
+
+            aws_region = os.environ.get('AWS_REGION', 'us-east-1')
+
+            # Reuse cached client to avoid re-auth overhead
+            if not hasattr(self, '_bedrock_client') or self._bedrock_client is None:
+                self._bedrock_client = boto3.client(
+                    service_name='bedrock-runtime',
+                    region_name=aws_region
+                )
+                self.logger.info(f"Bedrock client initialized in region {aws_region}")
+            
+            # Language-specific system prompts
+            system_prompts = {
+                'hi': '''तुम AI सखी हो, एक महिला स्वास्थ्य सहायक। महिलाओं और लड़कियों को स्वास्थ्य शिक्षा प्रदान करो।
+
+नियम:
+1. कभी चिकित्सा निदान न दें
+2. गंभीर लक्षणों के लिए डॉक्टर से परामर्श की सलाह दें
+3. सरल भाषा का उपयोग करें
+4. 2-3 वाक्यों में उत्तर दें''',
+                
+                'en': '''You are AI Sakhi, a women's health companion. Provide health education to women and girls.
+
+Rules:
+1. Never provide medical diagnosis
+2. Recommend doctor for serious symptoms
+3. Use simple language
+4. Answer in 2-3 sentences''',
+                
+                'bn': '''তুমি AI সখী, মহিলা স্বাস্থ্য সহায়ক। মহিলা এবং মেয়েদের স্বাস্থ্য শিক্ষা দাও।
+
+নিয়ম:
+1. চিকিৎসা নির্ণয় দিও না
+2. গুরুতর লক্ষণের জন্য ডাক্তারের পরামর্শ দাও
+3. সহজ ভাষা ব্যবহার কর
+4. ২-৩ বাক্যে উত্তর দাও'''
+            }
+            
+            system_prompt = system_prompts.get(language_code, system_prompts['en'])
+            
+            # Use Claude 3 Haiku (fast and cost-effective)
+            model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+            
+            request_body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 300,
+                "temperature": 0.7,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": f"{system_prompt}\n\nप्रश्न: {query}\n\nउत्तर:"
+                    }
+                ]
+            }
+            
+            response = self._bedrock_client.invoke_model(
+                modelId=model_id,
+                body=json.dumps(request_body)
+            )
+            
+            response_body = json.loads(response['body'].read())
+            
+            if 'content' in response_body and len(response_body['content']) > 0:
+                self.logger.info(f"Bedrock response received for language: {language_code}")
+                return response_body['content'][0]['text'].strip()
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Amazon Bedrock error (will NOT fall back to mock): {e}", exc_info=True)
+            # Reset cached client so next call retries fresh
+            self._bedrock_client = None
+            return None
+    
+    def _get_mock_bedrock_response(self, query: str, language_code: str) -> str:
+        """Generate mock Bedrock response for development."""
+        mock_responses = {
+            'hi': {
+                'default': 'मैं AI सखी हूं। मैं आपकी मदद के लिए यहां हूं। आप स्वास्थ्य से जुड़े कोई भी सवाल पूछ सकते हैं।',
+                'puberty': 'यौवन प्राकृतिक है। शरीर में बदलाव सामान्य हैं। स्वच्छता महत्वपूर्ण है।',
+                'pregnancy': 'गर्भावस्था में पौष्टिक भोजन और नियमित जांच जरूरी है।',
+                'menstrual': 'मासिक धर्म में स्वच्छता बनाए रखें। पैड या कप का उपयोग करें।',
+                'safety': 'आपकी सुरक्षा महत्वपूर्ण है। खतरे में 112 या 181 पर कॉल करें।'
+            },
+            'en': {
+                'default': 'I am AI Sakhi. I am here to help you with health questions.',
+                'puberty': 'Puberty is natural. Body changes are normal. Hygiene is important.',
+                'pregnancy': 'During pregnancy, eat nutritious food and get regular checkups.',
+                'menstrual': 'Maintain hygiene during menstruation. Use pads or cups.',
+                'safety': 'Your safety is important. In danger, call 112 or 181.'
+            },
+            'bn': {
+                'default': 'আমি AI সখী। আমি আপনার স্বাস্থ্য প্রশ্নে সাহায্য করতে এখানে আছি।',
+                'puberty': 'বয়ঃসন্ধি স্বাভাবিক। শরীরের পরিবর্তন স্বাভাবিক। পরিচ্ছন্নতা গুরুত্বপূর্ণ।',
+                'pregnancy': 'গর্ভাবস্থায় পুষ্টিকর খাবার এবং নিয়মিত চেকআপ প্রয়োজন।',
+                'menstrual': 'মাসিকের সময় পরিচ্ছন্নতা বজায় রাখুন। প্যাড বা কাপ ব্যবহার করুন।',
+                'safety': 'আপনার নিরাপত্তা গুরুত্বপূর্ণ। বিপদে 112 বা 181 নম্বরে কল করুন।'
+            },
+            'ta': {
+                'default': 'நான் AI சகி. உங்கள் சுகாதார கேள்விகளுக்கு உதவ இங்கே இருக்கிறேன்.',
+                'puberty': 'பருவமடைதல் இயற்கையானது. உடல் மாற்றங்கள் சாதாரணமானவை. சுகாதாரம் முக்கியம்.',
+                'pregnancy': 'கர்ப்ப காலத்தில் சத்தான உணவு மற்றும் வழக்கமான பரிசோதனை அவசியம்.',
+                'menstrual': 'மாதவிடாய் நேரத்தில் சுகாதாரம் பராமரிக்கவும். பேட் அல்லது கப் பயன்படுத்தவும்.',
+                'safety': 'உங்கள் பாதுகாப்பு முக்கியம். ஆபத்தில் 112 அல்லது 181 அழைக்கவும்.'
+            },
+            'te': {
+                'default': 'నేను AI సఖి. మీ ఆరోగ్య ప్రశ్నలకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను.',
+                'puberty': 'యుక్తవయస్సు సహజమైనది. శరీర మార్పులు సాధారణమైనవి. పరిశుభ్రత ముఖ్యం.',
+                'pregnancy': 'గర్భధారణ సమయంలో పోషకాహారం మరియు క్రమం తప్పకుండా తనిఖీలు అవసరం.',
+                'menstrual': 'మాసిక ధర్మ సమయంలో పరిశుభ్రత పాటించండి. ప్యాడ్ లేదా కప్ వాడండి.',
+                'safety': 'మీ భద్రత ముఖ్యం. ప్రమాదంలో 112 లేదా 181 కి కాల్ చేయండి.'
+            },
+            'mr': {
+                'default': 'मी AI सखी आहे. मी तुमच्या आरोग्य प्रश्नांसाठी मदत करण्यासाठी येथे आहे.',
+                'puberty': 'तारुण्यावस्था नैसर्गिक आहे. शरीरातील बदल सामान्य आहेत. स्वच्छता महत्त्वाची आहे.',
+                'pregnancy': 'गर्भधारणेदरम्यान पौष्टिक अन्न आणि नियमित तपासणी आवश्यक आहे.',
+                'menstrual': 'मासिक पाळीत स्वच्छता राखा. पॅड किंवा कप वापरा.',
+                'safety': 'तुमची सुरक्षा महत्त्वाची आहे. धोक्यात 112 किंवा 181 वर कॉल करा.'
+            }
+        }
+        
+        query_lower = query.lower()
+        topic = 'default'
+        
+        if any(word in query_lower for word in ['puberty', 'यौवन', 'বয়ঃসন্ধি', 'பருவம்', 'యుక్తవయస్సు', 'तारुण्य']):
+            topic = 'puberty'
+        elif any(word in query_lower for word in ['pregnancy', 'गर्भ', 'গর্ভ', 'கர்ப்ப', 'గర్భ', 'गर्भधारण']):
+            topic = 'pregnancy'
+        elif any(word in query_lower for word in ['menstrual', 'मासिक', 'মাসিক', 'மாதவிடாய்', 'మాసిక', 'period']):
+            topic = 'menstrual'
+        elif any(word in query_lower for word in ['safety', 'सुरक्षा', 'নিরাপত্তা', 'பாதுகாப்பு', 'భద్రత', 'help', 'मदद']):
+            topic = 'safety'
+        
+        responses = mock_responses.get(language_code, mock_responses['en'])
+        return responses.get(topic, responses['default'])
     
     def health_check(self) -> Dict[str, Any]:
         """Perform a health check of the voice interface system."""

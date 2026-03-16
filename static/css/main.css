@@ -293,6 +293,9 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px var(--shadow);
     border: 2px solid transparent;
+    text-decoration: none;
+    display: block;
+    color: inherit;
 }
 
 .module-card:hover {

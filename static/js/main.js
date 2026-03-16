@@ -7,10 +7,12 @@
 let isVoiceActive = false;
 let recognition = null;
 let synthesis = null;
+let noSpeechTimer = null;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
+    restoreLanguage();
     setupVoiceRecognition();
     setupLanguageSelector();
     setupAccessibility();
@@ -21,19 +23,23 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function initializeApp() {
     console.log('AI Sakhi - Voice-First Health Companion initialized');
-    
-    // Add loading animation to logo
     const logo = document.querySelector('.main-logo');
     if (logo) {
-        logo.addEventListener('load', function() {
-            this.style.opacity = '1';
-        });
+        logo.addEventListener('load', function() { this.style.opacity = '1'; });
     }
-    
-    // Setup service worker for offline functionality (future enhancement)
-    if ('serviceWorker' in navigator) {
-        // Will be implemented in later tasks
-        console.log('Service Worker support detected');
+}
+
+/**
+ * Restore language - sync LanguageSelector instance with server-rendered value.
+ */
+function restoreLanguage() {
+    // The server-rendered <select> is the ground truth.
+    // Sync the LanguageSelector instance if it's already initialized.
+    const select = document.getElementById('languageSelect');
+    const serverLang = select ? select.value : null;
+    if (serverLang && window.languageSelector && window.languageSelector.currentLanguage !== serverLang) {
+        window.languageSelector.currentLanguage = serverLang;
+        window.languageSelector.updateCurrentLanguageDisplay();
     }
 }
 
@@ -47,27 +53,52 @@ function setupVoiceRecognition() {
         recognition = new SpeechRecognition();
         
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true;   // show interim so user sees it's working
+        recognition.maxAlternatives = 1;
         recognition.lang = getCurrentLanguage();
         
         recognition.onstart = function() {
             console.log('Voice recognition started');
             updateVoiceButton(true);
+            startListeningCountdown();
         };
         
         recognition.onresult = function(event) {
-            const transcript = event.results[0][0].transcript;
-            console.log('Voice input received:', transcript);
-            processVoiceInput(transcript);
+            stopListeningCountdown();
+            // Use the final result
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    const transcript = event.results[i][0].transcript.trim();
+                    if (transcript) {
+                        console.log('Voice input received:', transcript);
+                        // If on module page, put in chat input
+                        const chatInput = document.getElementById('textInput');
+                        if (chatInput) {
+                            chatInput.value = transcript;
+                            if (window.sendTextQuery) sendTextQuery();
+                        } else {
+                            processVoiceInput(transcript);
+                        }
+                    }
+                }
+            }
         };
         
         recognition.onerror = function(event) {
-            console.error('Voice recognition error:', event.error);
-            showMessage('Voice recognition error: ' + event.error, 'error');
+            stopListeningCountdown();
             updateVoiceButton(false);
+            if (event.error === 'no-speech') {
+                // Silent - just stop, don't alarm the user
+                console.log('No speech detected, stopped listening');
+            } else if (event.error === 'not-allowed') {
+                showMessage('Microphone access denied. Please allow microphone in browser settings.', 'error');
+            } else {
+                console.warn('Voice recognition error:', event.error);
+            }
         };
         
         recognition.onend = function() {
+            stopListeningCountdown();
             console.log('Voice recognition ended');
             updateVoiceButton(false);
         };
@@ -108,15 +139,36 @@ function toggleVoice() {
  */
 function updateVoiceButton(active) {
     isVoiceActive = active;
-    const voiceBtn = document.getElementById('voiceButton');
-    if (voiceBtn) {
+    // Update all voice buttons on the page (header + module page)
+    document.querySelectorAll('#voiceButton').forEach(btn => {
         if (active) {
-            voiceBtn.innerHTML = '🔴 Listening...';
-            voiceBtn.classList.add('listening');
+            btn.innerHTML = '🔴 Listening...';
+            btn.classList.add('listening');
         } else {
-            voiceBtn.innerHTML = '🎤 Voice';
-            voiceBtn.classList.remove('listening');
+            btn.innerHTML = '🎤 Voice';
+            btn.classList.remove('listening');
         }
+    });
+}
+
+let _countdownTimer = null;
+let _countdownSecs = 0;
+
+function startListeningCountdown() {
+    _countdownSecs = 8;
+    _countdownTimer = setInterval(() => {
+        _countdownSecs--;
+        document.querySelectorAll('#voiceButton').forEach(btn => {
+            btn.innerHTML = `🔴 Listening... ${_countdownSecs}s`;
+        });
+        if (_countdownSecs <= 0) stopListeningCountdown();
+    }, 1000);
+}
+
+function stopListeningCountdown() {
+    if (_countdownTimer) {
+        clearInterval(_countdownTimer);
+        _countdownTimer = null;
     }
 }
 
@@ -126,27 +178,43 @@ function updateVoiceButton(active) {
 function processVoiceInput(transcript) {
     console.log('Processing voice input:', transcript);
     
-    // Send to backend for processing
-    fetch('/voice/process', {
+    // Send to backend for processing (using text endpoint since we already have transcript)
+    fetch('/api/text/process', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
+        credentials: 'same-origin',
         body: JSON.stringify({
-            transcript: transcript,
+            text: transcript,
             language: getCurrentLanguage()
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
         console.log('Voice processing response:', data);
-        if (data.response) {
-            speakText(data.response);
+        
+        if (data.status === 'success') {
+            if (data.response_text) {
+                speakText(data.response_text);
+                // Display the response
+                showMessage(data.response_text, 'success');
+            } else {
+                console.warn('No response text in successful response');
+                showMessage('Received empty response', 'warning');
+            }
+        } else if (data.status === 'error') {
+            const errorMsg = data.message || data.error_message || 'Error processing input';
+            console.error('Error from server:', errorMsg, data);
+            showMessage(errorMsg, 'error');
         }
     })
     .catch(error => {
         console.error('Voice processing error:', error);
-        showMessage('Error processing voice input', 'error');
+        showMessage('Error processing voice input: ' + error.message, 'error');
     });
 }
 
@@ -212,39 +280,57 @@ function changeLanguage(languageCode) {
     console.log('Changing language to:', languageCode);
     
     fetch(`/language/${languageCode}`, {
-        method: 'GET'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preserve_session: true })
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Language change response:', data);
         if (data.status === 'success') {
-            // Reload page to apply new language
+            // Store in localStorage AND cookie as backup
+            localStorage.setItem('preferred_language', languageCode);
+            document.cookie = `preferred_language=${languageCode}; max-age=${60*60*24*30}; path=/; SameSite=Lax`;
             window.location.reload();
+        } else {
+            console.error('Language change failed:', data);
         }
     })
     .catch(error => {
         console.error('Language change error:', error);
-        showMessage('Error changing language', 'error');
+        // Still try to reload with cookie set
+        document.cookie = `preferred_language=${languageCode}; max-age=${60*60*24*30}; path=/; SameSite=Lax`;
+        window.location.reload();
     });
 }
 
 /**
- * Get current language
+ * Get current language - reads from languageSelector instance, cookie, or localStorage
  */
 function getCurrentLanguage() {
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        const selectedLang = languageSelect.value;
-        // Map language codes to speech recognition codes
-        const langMap = {
-            'hi': 'hi-IN',
-            'en': 'en-US',
-            'bn': 'bn-IN',
-            'ta': 'ta-IN',
-            'te': 'te-IN',
-            'mr': 'mr-IN'
-        };
-        return langMap[selectedLang] || 'hi-IN';
+    // 1. Ask the LanguageSelector instance if available
+    if (window.languageSelector) {
+        const code = window.languageSelector.currentLanguage;
+        if (code) {
+            const langMap = { 'hi': 'hi-IN', 'en': 'en-US', 'bn': 'bn-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'mr': 'mr-IN' };
+            return langMap[code] || 'hi-IN';
+        }
     }
+
+    // 2. Fallback: read the native <select> if it still exists
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect && languageSelect.value) {
+        const langMap = { 'hi': 'hi-IN', 'en': 'en-US', 'bn': 'bn-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'mr': 'mr-IN' };
+        return langMap[languageSelect.value] || 'hi-IN';
+    }
+
+    // 3. Cookie (set by server - most reliable persistent source)
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)preferred_language=([^;]+)/);
+    if (cookieMatch && cookieMatch[1]) {
+        const langMap = { 'hi': 'hi-IN', 'en': 'en-US', 'bn': 'bn-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'mr': 'mr-IN' };
+        return langMap[cookieMatch[1]] || 'hi-IN';
+    }
+
     return 'hi-IN';
 }
 
@@ -318,24 +404,18 @@ function showMessage(message, type = 'info') {
 }
 
 /**
- * Navigate to module (placeholder)
+ * Navigate to module (real navigation)
  */
 function navigateToModule(moduleName) {
-    console.log('Navigating to module:', moduleName);
-    showMessage(`${moduleName} module will be implemented soon!`, 'info');
+    window.location.href = '/modules/' + moduleName;
 }
 
 /**
- * Start voice interaction (placeholder)
+ * Start voice interaction
  */
 function startVoiceInteraction() {
     console.log('Starting voice interaction');
-    speakText('Welcome to AI Sakhi! I am your voice-first health companion. How can I help you today?');
-    
-    // Start listening after greeting
-    setTimeout(() => {
-        toggleVoice();
-    }, 3000);
+    toggleVoice();
 }
 
 /**

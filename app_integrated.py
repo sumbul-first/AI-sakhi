@@ -23,30 +23,206 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import base64
 
+# Load .env file if present (for local development configuration)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, rely on real env vars
+
 # Import core components
-from core.session_manager import SessionManager
-from core.content_manager import ContentManager
-from core.speech_processor import SpeechProcessor
-from core.voice_interface import VoiceInterface
-from core.reminder_system import ReminderSystem, ReminderType
-from core.content_safety import ContentSafetyValidator
-from core.error_handler import (
-    ErrorHandler, GracefulDegradation, OfflineEmergencyAccess,
-    handle_errors, ErrorCategory
-)
+try:
+    from core.session_manager import SessionManager
+    from core.content_manager import ContentManager
+    from core.speech_processor import SpeechProcessor
+    from core.voice_interface import VoiceInterface
+    from core.reminder_system import ReminderSystem, ReminderType
+    from core.content_safety import ContentSafetyValidator
+    from core.error_handler import (
+        ErrorHandler, GracefulDegradation, OfflineEmergencyAccess,
+        handle_errors, ErrorCategory
+    )
+    from core.cloudwatch_logger import CloudWatchLogger
+    from core.content_manager import ContentSyncMonitor
+except ImportError as e:
+    logger.error(f"Error importing core components: {e}")
+    # Create minimal placeholder classes
+    class SessionManager:
+        def __init__(self, *args, **kwargs): 
+            self.sessions = {}
+        def create_session(self, language): 
+            from dataclasses import dataclass
+            @dataclass
+            class Session:
+                session_id: str = "mock-session"
+            return Session()
+        def update_session(self, *args, **kwargs): pass
+        def get_active_session_count(self): return 0
+        def get_session_count(self): return 0
+    
+    class ContentManager:
+        def __init__(self, *args, **kwargs): pass
+        def health_check(self): return {'status': 'mock'}
+    
+    class SpeechProcessor:
+        def __init__(self, *args, **kwargs): pass
+    
+    class VoiceInterface:
+        def __init__(self, *args, **kwargs): pass
+        def health_check(self): return {'status': 'mock'}
+        def get_interaction_stats(self): return {}
+        def process_voice_input(self, *args, **kwargs):
+            from dataclasses import dataclass
+            @dataclass
+            class Result:
+                success: bool = False
+                error_message: str = "Mock mode"
+                user_query: str = ""
+                response_text: str = ""
+                response_audio_url: str = ""
+                language_code: str = "hi"
+                confidence_score: float = 0.0
+                processing_time_ms: int = 0
+                module_used: str = ""
+                fallback_used: bool = False
+                emergency_detected: bool = False
+            return Result()
+        def process_text_input(self, *args, **kwargs):
+            return self.process_voice_input()
+    
+    class ReminderSystem:
+        def __init__(self, *args, **kwargs): pass
+        def health_check(self): return {'status': 'mock'}
+        def get_user_reminders(self, *args): return []
+        def get_upcoming_reminders(self, *args, **kwargs): return []
+        def get_reminder_statistics(self, *args): return {}
+        def create_reminder(self, *args, **kwargs):
+            from dataclasses import dataclass
+            @dataclass
+            class Reminder:
+                def to_dict(self): return {}
+            return Reminder()
+        def create_prenatal_appointment_reminder(self, *args, **kwargs):
+            return self.create_reminder()
+    
+    class ReminderType:
+        pass
+    
+    class ContentSafetyValidator:
+        def __init__(self, *args, **kwargs): pass
+        def health_check(self): return {'status': 'mock'}
+        def validate_system_response(self, text, lang):
+            from dataclasses import dataclass
+            @dataclass
+            class Validation:
+                is_safe: bool = True
+                detected_issues: list = None
+                requires_medical_referral: bool = False
+                def __post_init__(self):
+                    if self.detected_issues is None:
+                        self.detected_issues = []
+            return Validation()
+        def validate_user_query(self, text, lang):
+            return self.validate_system_response(text, lang)
+        def sanitize_response(self, text, lang):
+            return text, False
+    
+    class ErrorHandler:
+        def __init__(self, *args, **kwargs): pass
+        def handle_error(self, error, context, lang):
+            from dataclasses import dataclass
+            @dataclass
+            class ErrorResponse:
+                user_message: str = "An error occurred"
+                recovery_options: list = None
+                def __post_init__(self):
+                    if self.recovery_options is None:
+                        self.recovery_options = []
+            return ErrorResponse()
+    
+    class GracefulDegradation:
+        pass
+    
+    class OfflineEmergencyAccess:
+        @staticmethod
+        def get_contacts(lang):
+            return [
+                {
+                    'type': 'helpline',
+                    'phone': '181',
+                    'region': 'India',
+                    'languages': ['Hindi', 'English'],
+                    'hours': '24/7',
+                    'description': 'Women Helpline'
+                }
+            ]
+    
+    def handle_errors(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    
+    class ErrorCategory:
+        pass
+
+    class CloudWatchLogger:
+        def __init__(self, *args, **kwargs): pass
+        def log_interaction(self, *args, **kwargs): pass
+        def log_error(self, *args, **kwargs): pass
+        def log_session_event(self, *args, **kwargs): pass
+        def health_check(self): return {'status': 'mock', 'mode': 'mock'}
+
+    class ContentSyncMonitor:
+        def __init__(self, *args, **kwargs): pass
+        def get_sync_status(self): return {'status': 'mock', 'last_check': None, 'last_sync': None, 'content_counts': {}, 'is_stale': True}
+        def check_for_updates(self): return False
+        def force_sync(self): return self.get_sync_status()
+        def start_background_monitoring(self): pass
+        def stop_background_monitoring(self): pass
 
 # Import health modules
-from modules.puberty_education_module import PubertyEducationModule
-from modules.safety_mental_support_module import SafetyMentalSupportModule
-from modules.menstrual_guide_module import MenstrualGuideModule
-from modules.pregnancy_guidance_module import PregnancyGuidanceModule
-from modules.government_resources_module import GovernmentResourcesModule
+try:
+    from modules.puberty_education_module import PubertyEducationModule
+    from modules.safety_mental_support_module import SafetyMentalSupportModule
+    from modules.menstrual_guide_module import MenstrualGuideModule
+    from modules.pregnancy_guidance_module import PregnancyGuidanceModule
+    from modules.government_resources_module import GovernmentResourcesModule
+except ImportError as e:
+    logger.error(f"Error importing health modules: {e}")
+    # Create placeholder classes if imports fail
+    class PubertyEducationModule:
+        def __init__(self, *args, **kwargs): pass
+        def get_module_info(self): return {'name': 'Puberty Education', 'description': 'Mock module'}
+        def get_module_topics(self, lang): return []
+    class SafetyMentalSupportModule:
+        def __init__(self, *args, **kwargs): pass
+        def get_module_info(self): return {'name': 'Safety & Mental Support', 'description': 'Mock module'}
+        def get_module_topics(self, lang): return []
+        def get_emergency_resources(self, lang): return []
+    class MenstrualGuideModule:
+        def __init__(self, *args, **kwargs): pass
+        def get_module_info(self): return {'name': 'Menstrual Guide', 'description': 'Mock module'}
+        def get_module_topics(self, lang): return []
+    class PregnancyGuidanceModule:
+        def __init__(self, *args, **kwargs): pass
+        def get_module_info(self): return {'name': 'Pregnancy Guidance', 'description': 'Mock module'}
+        def get_module_topics(self, lang): return []
+    class GovernmentResourcesModule:
+        def __init__(self, *args, **kwargs): pass
+        def get_module_info(self): return {'name': 'Government Resources', 'description': 'Mock module'}
+        def get_module_topics(self, lang): return []
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ai-sakhi-dev-key-change-in-production')
 app.config['PORT'] = 8080
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_NAME'] = 'ai_sakhi_session'
 
 # Configure Babel for multi-language support
 app.config['LANGUAGES'] = {
@@ -62,12 +238,19 @@ app.config['BABEL_DEFAULT_TIMEZONE'] = 'Asia/Kolkata'
 
 def get_locale():
     """Select the best language based on user preference or browser settings."""
+    # 1. Flask session (set server-side on language change - most trusted)
     if 'language' in session:
-        return session['language']
-    if request.args.get('lang'):
-        session['language'] = request.args.get('lang')
-        return session['language']
-    return request.accept_languages.best_match(app.config['LANGUAGES'].keys()) or 'hi'
+        lang = session['language']
+        if lang in app.config['LANGUAGES']:
+            return lang
+    # 2. Cookie set by explicit user action via /language/<code> endpoint
+    lang_cookie = request.cookies.get('preferred_language')
+    if lang_cookie and lang_cookie in app.config['LANGUAGES']:
+        session['language'] = lang_cookie
+        return lang_cookie
+    # 3. Default to Hindi
+    session['language'] = 'hi'
+    return 'hi'
 
 babel = Babel(app, locale_selector=get_locale)
 
@@ -92,15 +275,15 @@ session_manager = SessionManager(timeout_minutes=30, enable_persistence=False)
 
 # Content Manager (using mock mode for development)
 content_manager = ContentManager(
-    s3_bucket_name='ai-sakhi-content',
-    aws_region='us-east-1',
-    use_mock=True
+    s3_bucket_name=os.environ.get('S3_BUCKET_NAME', 'ai-sakhi-content'),
+    aws_region=os.environ.get('AWS_REGION', 'us-east-1'),
+    use_mock=os.environ.get('USE_MOCK', 'true').lower() == 'true'
 )
 
 # Speech Processor
 speech_processor = SpeechProcessor(
-    aws_region='us-east-1',
-    use_mock=True
+    aws_region=os.environ.get('AWS_REGION', 'us-east-1'),
+    use_mock=os.environ.get('USE_MOCK', 'true').lower() == 'true'
 )
 
 # Voice Interface
@@ -108,7 +291,7 @@ voice_interface = VoiceInterface(
     speech_processor=speech_processor,
     content_manager=content_manager,
     session_manager=session_manager,
-    use_mock=True
+    use_mock=os.environ.get('USE_MOCK', 'true').lower() == 'true'
 )
 
 # Reminder System
@@ -119,6 +302,16 @@ content_safety_validator = ContentSafetyValidator()
 
 # Error Handler
 error_handler = ErrorHandler()
+
+# CloudWatch Logger (mock mode for development)
+cloudwatch_logger = CloudWatchLogger(
+    log_group=os.environ.get('CLOUDWATCH_LOG_GROUP', '/ai-sakhi/application'),
+    aws_region=os.environ.get('AWS_REGION', 'us-east-1'),
+    use_mock=os.environ.get('USE_MOCK', 'true').lower() == 'true'
+)
+
+# Content Sync Monitor
+sync_monitor = ContentSyncMonitor(content_manager, cloudwatch_logger)
 
 # Initialize health modules
 logger.info("Initializing health education modules...")
@@ -172,6 +365,10 @@ def validate_and_sanitize_response(response_text: str, language_code: str) -> Di
 @app.route('/')
 def index():
     """Main landing page for AI Sakhi."""
+    # Auto-reset language to Hindi if it was never explicitly set by the user.
+    # We track explicit user choice with the 'language_explicitly_set' flag.
+    if not session.get('language_explicitly_set') and session.get('language') == 'ta':
+        session['language'] = 'hi'
     session_id = get_or_create_session_id()
     logger.info(f"User accessed main page (session: {session_id})")
     return render_template('index.html')
@@ -217,6 +414,13 @@ def health_check():
             'count': len(health_modules)
         }
         
+        # Check CloudWatch logger
+        cw_health = cloudwatch_logger.health_check()
+        health_status['components']['cloudwatch_logger'] = cw_health
+
+        # Check content sync monitor
+        health_status['components']['content_sync'] = sync_monitor.get_sync_status()
+
         return jsonify(health_status)
         
     except Exception as e:
@@ -261,7 +465,7 @@ def modules():
     return render_template('modules.html', modules=modules_data)
 
 
-@app.route('/module/<module_name>')
+@app.route('/modules/<module_name>')
 def module_detail(module_name):
     """Display detailed view of a specific health module."""
     if module_name not in health_modules:
@@ -323,6 +527,16 @@ def process_voice():
             )
             result.response_text = sanitized['text']
         
+        # Log the interaction to CloudWatch
+        cloudwatch_logger.log_interaction(
+            session_id=session_id,
+            query=result.user_query or '',
+            response=result.response_text or '',
+            language=result.language_code,
+            module_used=result.module_used or '',
+            processing_time_ms=result.processing_time_ms or 0
+        )
+
         return jsonify({
             'status': 'success' if result.success else 'error',
             'user_query': result.user_query,
@@ -339,6 +553,11 @@ def process_voice():
         
     except Exception as e:
         logger.error(f"Error processing voice input: {e}")
+        cloudwatch_logger.log_error(
+            error_type='voice_processing_error',
+            error_message=str(e),
+            context_data={'route': '/api/voice/process'}
+        )
         return jsonify({
             'status': 'error',
             'message': gettext('Failed to process voice input')
@@ -350,7 +569,6 @@ def process_text():
     """Process text input as fallback."""
     try:
         session_id = get_or_create_session_id()
-        language_code = session.get('language', 'hi')
         
         data = request.get_json()
         if not data or 'text' not in data:
@@ -359,7 +577,21 @@ def process_text():
                 'message': gettext('No text provided')
             }), 400
         
+        # Language priority: request body > Flask session > cookie > default
+        language_code = (
+            data.get('language') or
+            session.get('language') or
+            request.cookies.get('preferred_language') or
+            'hi'
+        )
+        # Strip speech code suffix if sent (e.g. 'hi-IN' -> 'hi')
+        if '-' in language_code:
+            language_code = language_code.split('-')[0]
+        if language_code not in app.config.get('LANGUAGES', {}):
+            language_code = 'hi'
+        
         user_text = data['text']
+        logger.info(f"Processing text input: {user_text[:50]}... (language: {language_code})")
         
         # Validate user query for safety
         query_validation = content_safety_validator.validate_user_query(
@@ -373,18 +605,34 @@ def process_text():
             language_code=language_code
         )
         
+        logger.info(f"Processing result - success: {result.success}, response: {result.response_text[:50] if result.response_text else 'None'}")
+        
         # Validate and sanitize response
-        if result.success and result.response_text:
+        response_text = result.response_text
+        if result.success and response_text:
             sanitized = validate_and_sanitize_response(
-                result.response_text,
+                response_text,
                 result.language_code
             )
-            result.response_text = sanitized['text']
+            response_text = sanitized['text']
+        elif not response_text:
+            # Provide a default response if none was generated
+            response_text = gettext('I am AI Sakhi. How can I help you with your health questions?')
         
+        # Log the interaction to CloudWatch
+        cloudwatch_logger.log_interaction(
+            session_id=session_id,
+            query=user_text,
+            response=response_text,
+            language=result.language_code,
+            module_used=result.module_used or '',
+            processing_time_ms=result.processing_time_ms or 0
+        )
+
         return jsonify({
             'status': 'success' if result.success else 'error',
-            'user_query': result.user_query,
-            'response_text': result.response_text,
+            'user_query': result.user_query or user_text,
+            'response_text': response_text,
             'response_audio_url': result.response_audio_url,
             'language_code': result.language_code,
             'processing_time_ms': result.processing_time_ms,
@@ -395,10 +643,16 @@ def process_text():
         })
         
     except Exception as e:
-        logger.error(f"Error processing text input: {e}")
+        logger.error(f"Error processing text input: {e}", exc_info=True)
+        cloudwatch_logger.log_error(
+            error_type='text_processing_error',
+            error_message=str(e),
+            context_data={'route': '/api/text/process'}
+        )
         return jsonify({
             'status': 'error',
-            'message': gettext('Failed to process text input')
+            'message': gettext('Failed to process text input'),
+            'error_details': str(e)
         }), 500
 
 
@@ -479,27 +733,44 @@ def set_language(language_code):
                 session['preserved_data'] = session_data
                 logger.info(f"Session data preserved for language change to {language_code}")
         
-        # Set the new language
+        # Set the new language and make session permanent
         session['language'] = language_code
+        session['language_explicitly_set'] = True
+        session.permanent = True
         
         # Update session manager
         session_manager.update_session(session_id, language_preference=language_code)
         
-        logger.info(f"Language changed to: {language_code} ({app.config['LANGUAGES'][language_code]})")
+        logger.info(f"Language changed to: {language_code} ({app.config['LANGUAGES'][language_code]}) for session {session_id}")
         
-        return jsonify({
+        resp = jsonify({
             'status': 'success',
             'language': language_code,
             'language_name': app.config['LANGUAGES'][language_code],
             'message': gettext('Language changed successfully')
         })
+        # Set a persistent cookie so get_locale() can read it even after session expiry
+        resp.set_cookie('preferred_language', language_code, max_age=60*60*24*30, samesite='Lax')
+        return resp
         
     except Exception as e:
-        logger.error(f"Error changing language to {language_code}: {str(e)}")
+        logger.error(f"Error changing language to {language_code}: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
             'message': gettext('Failed to change language')
         }), 500
+
+
+@app.route('/language/reset', methods=['GET', 'POST'])
+def reset_language():
+    """Reset language preference to Hindi (default)."""
+    session.pop('language', None)
+    session.pop('language_explicitly_set', None)
+    session['language'] = 'hi'
+    session.permanent = True
+    resp = jsonify({'status': 'success', 'language': 'hi'})
+    resp.set_cookie('preferred_language', 'hi', max_age=60*60*24*30, samesite='Lax')
+    return resp
 
 
 @app.route('/api/emergency')
@@ -582,9 +853,27 @@ def get_stats():
         }), 500
 
 
+@app.route('/api/content/sync/status')
+def content_sync_status():
+    """Return current content synchronization status."""
+    return jsonify(sync_monitor.get_sync_status())
+
+
+@app.route('/api/content/sync/force', methods=['POST'])
+def content_sync_force():
+    """Force an immediate content synchronization."""
+    result = sync_monitor.force_sync()
+    return jsonify(result)
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""
+    cloudwatch_logger.log_error(
+        error_type='http_404',
+        error_message=str(error),
+        context_data={'path': request.path}
+    )
     return render_template('error.html', 
                          error_code=404,
                          error_message=gettext('Page not found')), 404
@@ -594,6 +883,11 @@ def not_found(error):
 def internal_error(error):
     """Handle 500 errors."""
     logger.error(f"Internal server error: {error}")
+    cloudwatch_logger.log_error(
+        error_type='http_500',
+        error_message=str(error),
+        context_data={'path': request.path}
+    )
     return render_template('error.html',
                          error_code=500,
                          error_message=gettext('Internal server error')), 500

@@ -8,46 +8,56 @@ The architecture follows a modular approach with five core educational modules (
 
 ## Architecture
 
-The system follows a three-tier architecture:
+The system follows a three-tier architecture with AI-powered natural language processing:
 
 ### Presentation Layer
 - **Flask Web Framework**: Serves the web application on port 8080
-- **Voice Interface**: Handles speech recognition and synthesis
-- **Responsive UI**: Women-centric design optimized for low-literacy users
-- **Multi-language Support**: Flask-Babel integration for localization
+- **Voice Interface**: Handles speech recognition and synthesis with Web Speech API fallback
+- **Responsive UI**: Women-centric design with AI Sakhi branding (mother-daughter imagery, warm colors)
+- **Multi-language Support**: Flask-Babel integration with session persistence (7-day lifetime)
+- **Session Management**: Permanent sessions with localStorage backup for language preferences
 
 ### Application Layer
-- **Content Modules**: Five specialized health education modules
-- **Session Management**: User state and progress tracking
-- **Language Processing**: Natural language understanding for voice queries
-- **Emergency Routing**: Immediate connection to human help services
+- **AI Processing**: Amazon Bedrock (Claude 3 Haiku) for intelligent natural language understanding
+- **Content Modules**: Five specialized health education modules with pattern-matching fallback
+- **Session Management**: User state and progress tracking with 30-minute timeout
+- **Language Processing**: Multi-language AI responses (Hindi, English, Bengali, Tamil, Telugu, Marathi)
+- **Emergency Routing**: Immediate connection to human help services with offline fallback
+- **Content Safety**: Validation layer ensuring no medical diagnosis in responses
+- **Reminder System**: Prenatal appointment scheduling and notifications
 
 ### Infrastructure Layer
+- **AWS Bedrock**: Claude 3 Haiku model for AI-powered responses with mock mode for development
 - **AWS S3**: Audio/video content storage and delivery
-- **AWS Transcribe**: Speech-to-text conversion
-- **AWS Polly**: Text-to-speech synthesis with regional language support
+- **AWS Transcribe**: Speech-to-text conversion (mock mode available)
+- **AWS Polly**: Text-to-speech synthesis with regional language support (mock mode available)
 - **AWS CloudWatch**: Application monitoring and logging
+- **CloudFormation**: Infrastructure as Code with multi-AZ and single-AZ deployment options
 - **Python Virtual Environment**: Isolated dependency management
 
 ```mermaid
 graph TB
     subgraph "User Interface Layer"
-        UI[Web Interface]
-        VI[Voice Interface]
-        LS[Language Selector]
+        UI[Web Interface<br/>AI Sakhi Branding]
+        VI[Voice Interface<br/>Web Speech API]
+        LS[Language Selector<br/>Session Persistence]
     end
     
     subgraph "Application Layer"
+        AI[Amazon Bedrock<br/>Claude 3 Haiku]
         PE[Puberty Education]
         SM[Safety & Mental Support]
         MG[Menstrual Guide]
         PG[Pregnancy Guidance]
         GR[Government Resources]
         EC[Emergency Connector]
-        SM_MGR[Session Manager]
+        SM_MGR[Session Manager<br/>7-day persistence]
+        CS[Content Safety<br/>Validator]
+        RS[Reminder System]
     end
     
     subgraph "AWS Services"
+        BEDROCK[Bedrock Runtime<br/>Claude 3 Haiku]
         S3[S3 Storage]
         TRANS[Transcribe]
         POLLY[Polly TTS]
@@ -56,7 +66,13 @@ graph TB
     
     UI --> SM_MGR
     VI --> TRANS
-    VI --> POLLY
+    VI --> AI
+    AI --> BEDROCK
+    AI --> PE
+    AI --> SM
+    AI --> MG
+    AI --> PG
+    AI --> GR
     LS --> SM_MGR
     
     SM_MGR --> PE
@@ -64,16 +80,48 @@ graph TB
     SM_MGR --> MG
     SM_MGR --> PG
     SM_MGR --> EC
+    SM_MGR --> RS
     
+    AI --> CS
     PE --> S3
     SM --> S3
     MG --> S3
     PG --> S3
     
+    VI --> POLLY
     SM_MGR --> CW
 ```
 
 ## Components and Interfaces
+
+### AI Processing System
+
+**Amazon Bedrock Integration**
+- **Purpose**: Provides intelligent natural language understanding and response generation
+- **Model**: Claude 3 Haiku (anthropic.claude-3-haiku-20240307-v1:0)
+- **Features**:
+  - Multi-language support (Hindi, English, Bengali, Tamil, Telugu, Marathi)
+  - Language-specific system prompts ensuring no medical diagnosis
+  - Culturally sensitive responses
+  - 300 token max response length for concise answers
+  - Temperature 0.7 for balanced creativity and consistency
+- **Fallback Strategy**: Pattern-matching module routing when Bedrock unavailable
+- **Mock Mode**: Development mode with simulated responses (no AWS credentials required)
+
+**Interface Contract**:
+```python
+def _get_bedrock_response(query: str, language_code: str) -> Optional[str]:
+    """
+    Get AI response from Amazon Bedrock.
+    Returns None if Bedrock unavailable, triggering fallback.
+    """
+    
+def _get_mock_bedrock_response(query: str, language_code: str) -> str:
+    """
+    Generate mock Bedrock response for development.
+    Topic-aware responses based on query keywords.
+    """
+```
 
 ### Voice Processing System
 
@@ -86,6 +134,24 @@ graph TB
   - `detect_language(audio_data)`: Identifies spoken language
   - `process_voice_query(audio_data)`: End-to-end voice processing
 
+**VoiceInterface Class**
+- **Purpose**: Orchestrates complete voice interaction pipeline
+- **Features**:
+  - Voice input processing with audio data validation
+  - Text input fallback for browser-based transcription
+  - Emergency detection with regex patterns
+  - AI-first routing with pattern-matching fallback
+  - Response audio generation
+  - Interaction statistics tracking
+- **Processing Pipeline**:
+  1. Audio/text input received
+  2. Session validation/creation
+  3. Emergency detection check
+  4. AI processing (Bedrock) or pattern matching
+  5. Content safety validation
+  6. Audio response synthesis
+  7. Statistics update
+
 **Interface Contract**:
 ```python
 class SpeechProcessor:
@@ -93,6 +159,39 @@ class SpeechProcessor:
     def synthesize_speech(self, text: str, language_code: str, voice_id: str) -> bytes
     def detect_language(self, audio_data: bytes) -> str
     def process_voice_query(self, audio_data: bytes) -> dict
+
+class VoiceInterface:
+    def process_voice_input(self, audio_data: bytes, session_id: str, 
+                          language_code: Optional[str]) -> VoiceInteractionResult
+    def process_text_input(self, text: str, session_id: str, 
+                         language_code: str) -> VoiceInteractionResult
+    def _get_bedrock_response(self, query: str, language_code: str) -> Optional[str]
+    def _route_to_module(self, query: str, language_code: str, session) -> Tuple[str, str]
+```
+
+### Session Management System
+
+**SessionManager Class**
+- **Purpose**: Manages user sessions with persistence
+- **Configuration**:
+  - Session timeout: 30 minutes of inactivity
+  - Permanent sessions: 7-day lifetime
+  - Cookie settings: SameSite=Lax, Secure=False (dev), Secure=True (prod)
+- **Features**:
+  - Session creation with language preference
+  - Activity tracking and timeout management
+  - Language preference persistence
+  - Session data preservation during language changes
+- **Storage**: Flask session with filesystem backend and localStorage backup
+
+**Interface Contract**:
+```python
+class SessionManager:
+    def create_session(self, language_code: str) -> UserSession
+    def get_session(self, session_id: str) -> Optional[UserSession]
+    def update_session(self, session_id: str, **kwargs) -> None
+    def update_session_activity(self, session_id: str) -> None
+    def get_active_session_count(self) -> int
 ```
 
 ### Content Management System
