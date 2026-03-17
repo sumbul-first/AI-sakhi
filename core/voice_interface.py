@@ -396,8 +396,8 @@ class VoiceInterface:
             }
             system_prompt = system_prompts.get(language_code, system_prompts['en'])
 
-            # Get model ID from env - default to Titan which is available without approval
-            model_id = os.environ.get('BEDROCK_MODEL_ID', 'amazon.titan-text-express-v1')
+            # Get model ID from env - default to Nova Micro (available without approval, fast & cheap)
+            model_id = os.environ.get('BEDROCK_MODEL_ID', 'amazon.nova-micro-v1:0')
             self.logger.info(f"Using Bedrock model: {model_id}")
 
             # Build request body based on model family
@@ -413,6 +413,18 @@ class VoiceInterface:
                         }
                     ]
                 }
+            elif model_id.startswith('amazon.nova'):
+                # Amazon Nova Converse-style format
+                request_body = {
+                    "system": [{"text": system_prompt}],
+                    "messages": [
+                        {"role": "user", "content": [{"text": query}]}
+                    ],
+                    "inferenceConfig": {
+                        "maxTokens": 300,
+                        "temperature": 0.7
+                    }
+                }
             elif model_id.startswith('amazon.titan-text'):
                 request_body = {
                     "inputText": f"{system_prompt}\n\nQuestion: {query}\n\nAnswer:",
@@ -422,8 +434,19 @@ class VoiceInterface:
                         "topP": 0.9
                     }
                 }
+            elif model_id.startswith('meta.llama'):
+                request_body = {
+                    "prompt": f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n{query}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n",
+                    "max_gen_len": 300,
+                    "temperature": 0.7
+                }
+            elif model_id.startswith('mistral.'):
+                request_body = {
+                    "prompt": f"<s>[INST] {system_prompt}\n\n{query} [/INST]",
+                    "max_tokens": 300,
+                    "temperature": 0.7
+                }
             else:
-                # Generic fallback format
                 request_body = {
                     "inputText": f"{system_prompt}\n\nQuestion: {query}\n\nAnswer:",
                     "textGenerationConfig": {"maxTokenCount": 300, "temperature": 0.7}
@@ -440,12 +463,29 @@ class VoiceInterface:
             if model_id.startswith('anthropic.'):
                 if 'content' in response_body and response_body['content']:
                     text = response_body['content'][0]['text'].strip()
-                    self.logger.info(f"Bedrock (Anthropic) response received for language: {language_code}")
+                    self.logger.info(f"Bedrock (Anthropic) response for language: {language_code}")
+                    return text
+            elif model_id.startswith('amazon.nova'):
+                output = response_body.get('output', {}).get('message', {}).get('content', [])
+                if output:
+                    text = output[0].get('text', '').strip()
+                    self.logger.info(f"Bedrock (Nova) response for language: {language_code}")
                     return text
             elif model_id.startswith('amazon.titan-text'):
                 if 'results' in response_body and response_body['results']:
                     text = response_body['results'][0]['outputText'].strip()
-                    self.logger.info(f"Bedrock (Titan) response received for language: {language_code}")
+                    self.logger.info(f"Bedrock (Titan) response for language: {language_code}")
+                    return text
+            elif model_id.startswith('meta.llama'):
+                text = response_body.get('generation', '').strip()
+                if text:
+                    self.logger.info(f"Bedrock (Llama) response for language: {language_code}")
+                    return text
+            elif model_id.startswith('mistral.'):
+                outputs = response_body.get('outputs', [])
+                if outputs:
+                    text = outputs[0].get('text', '').strip()
+                    self.logger.info(f"Bedrock (Mistral) response for language: {language_code}")
                     return text
 
             return None
