@@ -1,27 +1,32 @@
 {
   "puberty": {
     "label": "Puberty Education",
-    "default_video_id": "P9K4MNBbgbI",
-    "title": "Puberty: What to Expect (Girls)"
+    "default_video_id": "ayzN5f3qN8g",
+    "title": "How menstruation works - TED-Ed (use as intro to body changes)",
+    "note": "Replace with a verified puberty-specific video ID from YouTube"
   },
   "menstrual": {
     "label": "Menstrual Health",
     "default_video_id": "ayzN5f3qN8g",
-    "title": "Menstruation: Let's Talk About Periods"
+    "title": "How menstruation works - TED-Ed",
+    "note": "Verified embeddable. Source: https://www.youtube.com/watch?v=ayzN5f3qN8g"
   },
   "safety": {
     "label": "Personal Safety",
-    "default_video_id": "Ow0lr63y4Mw",
-    "title": "Personal Safety for Girls"
+    "default_video_id": "F_ssj7-8rYg",
+    "title": "The surprising effects of pregnancy - TED-Ed (placeholder)",
+    "note": "Replace with a personal safety video ID. Current is a placeholder."
   },
   "pregnancy": {
     "label": "Pregnancy & Maternal Health",
     "default_video_id": "F_ssj7-8rYg",
-    "title": "Pregnancy and Prenatal Care"
+    "title": "The surprising effects of pregnancy - TED-Ed",
+    "note": "Verified embeddable. Source: https://www.youtube.com/watch?v=F_ssj7-8rYg"
   },
   "government": {
     "label": "Government Schemes for Women",
-    "default_video_id": "vNS9sJZ6ZBk",
-    "title": "Government Welfare Schemes for Women in India"
+    "default_video_id": "ayzN5f3qN8g",
+    "title": "Placeholder - replace with a government schemes video",
+    "note": "Replace with a MyGov India or government welfare video ID"
   }
 }
