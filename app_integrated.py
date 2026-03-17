@@ -514,10 +514,13 @@ def module_detail(module_name):
         video_embed_url = None
         video_label = ''
         if video_info:
-            vid = video_info.get('default_video_id')
+            vid = video_info.get('default_video_id', '').strip()
             if vid:
                 video_embed_url = f"https://www.youtube.com/embed/{vid}?rel=0&modestbranding=1"
+                logger.info(f"Video for module '{module_name}': {vid}")
             video_label = video_info.get('label', '')
+        else:
+            logger.warning(f"No video config found for module '{module_name}' in module_video_queries={list(module_video_queries.keys())}")
 
         return render_template('module.html',
                              module_name=module_name,

@@ -1,43 +1,27 @@
 {
-  "_comment": "Default YouTube video IDs per module. Each entry has a 'default_video_id' that plays immediately, plus optional 'playlist_id' for a full playlist. Update video IDs here to change what plays. All videos are from trusted educational channels (AMAZE, WHO, UNICEF, etc.).",
-
   "puberty": {
     "label": "Puberty Education",
     "default_video_id": "P9K4MNBbgbI",
-    "title": "Puberty: What to Expect (Girls) - Educational",
-    "channel": "AMAZE Org",
-    "playlist_id": "PLMEkj_GBnFBRCFBBBBBBBBBBBBBBBBBBBB"
+    "title": "Puberty: What to Expect (Girls)"
   },
-
   "menstrual": {
     "label": "Menstrual Health",
     "default_video_id": "ayzN5f3qN8g",
-    "title": "Menstruation: Let's Talk About Periods - Educational",
-    "channel": "AMAZE Org",
-    "playlist_id": null
+    "title": "Menstruation: Let's Talk About Periods"
   },
-
   "safety": {
     "label": "Personal Safety",
     "default_video_id": "Ow0lr63y4Mw",
-    "title": "Personal Safety for Girls - Educational",
-    "channel": "AMAZE Org",
-    "playlist_id": null
+    "title": "Personal Safety for Girls"
   },
-
   "pregnancy": {
     "label": "Pregnancy & Maternal Health",
     "default_video_id": "F_ssj7-8rYg",
-    "title": "Pregnancy and Prenatal Care - Educational",
-    "channel": "WHO / UNICEF",
-    "playlist_id": null
+    "title": "Pregnancy and Prenatal Care"
   },
-
   "government": {
     "label": "Government Schemes for Women",
     "default_video_id": "vNS9sJZ6ZBk",
-    "title": "Government Welfare Schemes for Women in India",
-    "channel": "MyGov India",
-    "playlist_id": null
+    "title": "Government Welfare Schemes for Women in India"
   }
 }
