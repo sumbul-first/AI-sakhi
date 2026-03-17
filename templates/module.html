@@ -58,7 +58,7 @@
     <div class="voice-panel" id="voicePanel">
         <div class="voice-panel-header">
             <h2 class="section-heading" style="margin-bottom:0">🎤 {{ _('Ask AI Sakhi') }}</h2>
-            <button class="chat-close-btn" onclick="document.getElementById('voicePanel').style.display='none'" title="{{ _('Close') }}">✕</button>
+            <button class="chat-close-btn" onclick="toggleChatPanel(false)" title="{{ _('Close') }}">✕</button>
         </div>
         <p class="voice-hint">{{ _('Type or speak your question about this topic') }}</p>
 
@@ -176,6 +176,18 @@
 {% block scripts %}
 <script>
 const chatMessages = document.getElementById('chatMessages');
+const voicePanel = document.getElementById('voicePanel');
+
+function toggleChatPanel(show) {
+    if (show === undefined) show = voicePanel.style.display === 'none';
+    voicePanel.style.display = show ? '' : 'none';
+    sessionStorage.setItem('chatPanelHidden', show ? 'false' : 'true');
+}
+
+// Restore panel visibility on page load — default is visible
+if (sessionStorage.getItem('chatPanelHidden') === 'true') {
+    voicePanel.style.display = 'none';
+}
 
 function appendMessage(text, role) {
     const div = document.createElement('div');
@@ -219,6 +231,7 @@ function sendTextQuery() {
 }
 
 function askAboutTopic(topic) {
+    toggleChatPanel(true);
     document.getElementById('textInput').value = topic;
     sendTextQuery();
 }
