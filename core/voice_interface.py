@@ -306,51 +306,11 @@ class VoiceInterface:
                 self.logger.info(f"Using Bedrock AI response for query: {query[:50]}...")
                 return 'ai_bedrock', bedrock_response
         except Exception as e:
-            self.logger.warning(f"Bedrock AI failed, falling back to pattern matching: {e}")
+            self.logger.warning(f"Bedrock AI failed, falling back to mock response: {e}")
 
-        # If not mock mode and Bedrock failed, use mock response as graceful fallback
-        # (better than a generic one-liner)
-        if not self.use_mock:
-            self.logger.info("Bedrock unavailable - using mock response as fallback")
-            return 'ai_bedrock_fallback', self._get_mock_bedrock_response(query, language_code)
-        
-        # Fallback to simple pattern matching for module routing
-        query_lower = query.lower()
-        
-        if any(word in query_lower for word in ['puberty', 'यौवन', 'বয়ঃসন্ধি']):
-            if 'puberty' in self.modules:
-                try:
-                    response = self.modules['puberty'].process_query(query, language_code)
-                    return 'puberty', response
-                except:
-                    pass
-        
-        if any(word in query_lower for word in ['pregnancy', 'गर्भावस्था', 'গর্ভাবস্থা']):
-            if 'pregnancy' in self.modules:
-                try:
-                    response = self.modules['pregnancy'].process_query(query, language_code)
-                    return 'pregnancy', response
-                except:
-                    pass
-        
-        if any(word in query_lower for word in ['menstrual', 'मासिक', 'মাসিক']):
-            if 'menstrual' in self.modules:
-                try:
-                    response = self.modules['menstrual'].process_query(query, language_code)
-                    return 'menstrual', response
-                except:
-                    pass
-        
-        if any(word in query_lower for word in ['government', 'सरकार', 'সরকার']):
-            if 'government' in self.modules:
-                try:
-                    response = self.modules['government'].process_query(query, language_code)
-                    return 'government', response
-                except:
-                    pass
-        
-        # Default general response
-        return 'general', self._get_general_response(query, language_code)
+        # Bedrock unavailable - use mock response as graceful fallback
+        self.logger.info("Bedrock unavailable - using mock response as fallback")
+        return 'ai_bedrock_fallback', self._get_mock_bedrock_response(query, language_code)
 
     
     def _get_fallback_message(self, language_code: str) -> str:
@@ -424,66 +384,74 @@ class VoiceInterface:
                     region_name=aws_region
                 )
                 self.logger.info(f"Bedrock client initialized in region {aws_region}")
-            
-            # Language-specific system prompts
+
+            # Language-specific system prompt
             system_prompts = {
-                'hi': '''तुम AI सखी हो, एक महिला स्वास्थ्य सहायक। महिलाओं और लड़कियों को स्वास्थ्य शिक्षा प्रदान करो।
-
-नियम:
-1. कभी चिकित्सा निदान न दें
-2. गंभीर लक्षणों के लिए डॉक्टर से परामर्श की सलाह दें
-3. सरल भाषा का उपयोग करें
-4. 2-3 वाक्यों में उत्तर दें''',
-                
-                'en': '''You are AI Sakhi, a women's health companion. Provide health education to women and girls.
-
-Rules:
-1. Never provide medical diagnosis
-2. Recommend doctor for serious symptoms
-3. Use simple language
-4. Answer in 2-3 sentences''',
-                
-                'bn': '''তুমি AI সখী, মহিলা স্বাস্থ্য সহায়ক। মহিলা এবং মেয়েদের স্বাস্থ্য শিক্ষা দাও।
-
-নিয়ম:
-1. চিকিৎসা নির্ণয় দিও না
-2. গুরুতর লক্ষণের জন্য ডাক্তারের পরামর্শ দাও
-3. সহজ ভাষা ব্যবহার কর
-4. ২-৩ বাক্যে উত্তর দাও'''
+                'hi': 'तुम AI सखी हो, एक महिला स्वास्थ्य सहायक। सरल हिंदी में 2-3 वाक्यों में उत्तर दो। कभी चिकित्सा निदान न दो।',
+                'en': 'You are AI Sakhi, a women\'s health companion. Answer in 2-3 simple sentences. Never diagnose.',
+                'bn': 'তুমি AI সখী, মহিলা স্বাস্থ্য সহায়ক। ২-৩ বাক্যে সহজ বাংলায় উত্তর দাও। চিকিৎসা নির্ণয় দিও না।',
+                'ta': 'நீங்கள் AI சகி, பெண்கள் சுகாதார உதவியாளர். 2-3 வாக்கியங்களில் பதிலளிக்கவும். மருத்துவ நோயறிதல் வழங்காதீர்கள்.',
+                'te': 'మీరు AI సఖి, మహిళా ఆరోగ్య సహాయకురాలు. 2-3 వాక్యాలలో సమాధానం ఇవ్వండి. వైద్య నిర్ధారణ చేయవద్దు.',
+                'mr': 'तुम्ही AI सखी आहात, महिला आरोग्य सहाय्यक. 2-3 वाक्यांत उत्तर द्या. वैद्यकीय निदान देऊ नका.'
             }
-            
             system_prompt = system_prompts.get(language_code, system_prompts['en'])
-            
-            # Use Claude 3 Haiku (fast and cost-effective)
-            model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-            
-            request_body = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 300,
-                "temperature": 0.7,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"{system_prompt}\n\nप्रश्न: {query}\n\nउत्तर:"
+
+            # Get model ID from env - default to Titan which is available without approval
+            model_id = os.environ.get('BEDROCK_MODEL_ID', 'amazon.titan-text-express-v1')
+            self.logger.info(f"Using Bedrock model: {model_id}")
+
+            # Build request body based on model family
+            if model_id.startswith('anthropic.'):
+                request_body = {
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 300,
+                    "temperature": 0.7,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": f"{system_prompt}\n\nQuestion: {query}\n\nAnswer:"
+                        }
+                    ]
+                }
+            elif model_id.startswith('amazon.titan-text'):
+                request_body = {
+                    "inputText": f"{system_prompt}\n\nQuestion: {query}\n\nAnswer:",
+                    "textGenerationConfig": {
+                        "maxTokenCount": 300,
+                        "temperature": 0.7,
+                        "topP": 0.9
                     }
-                ]
-            }
-            
+                }
+            else:
+                # Generic fallback format
+                request_body = {
+                    "inputText": f"{system_prompt}\n\nQuestion: {query}\n\nAnswer:",
+                    "textGenerationConfig": {"maxTokenCount": 300, "temperature": 0.7}
+                }
+
             response = self._bedrock_client.invoke_model(
                 modelId=model_id,
                 body=json.dumps(request_body)
             )
-            
+
             response_body = json.loads(response['body'].read())
-            
-            if 'content' in response_body and len(response_body['content']) > 0:
-                self.logger.info(f"Bedrock response received for language: {language_code}")
-                return response_body['content'][0]['text'].strip()
-            
+
+            # Parse response based on model family
+            if model_id.startswith('anthropic.'):
+                if 'content' in response_body and response_body['content']:
+                    text = response_body['content'][0]['text'].strip()
+                    self.logger.info(f"Bedrock (Anthropic) response received for language: {language_code}")
+                    return text
+            elif model_id.startswith('amazon.titan-text'):
+                if 'results' in response_body and response_body['results']:
+                    text = response_body['results'][0]['outputText'].strip()
+                    self.logger.info(f"Bedrock (Titan) response received for language: {language_code}")
+                    return text
+
             return None
-            
+
         except Exception as e:
-            self.logger.error(f"Amazon Bedrock error (will NOT fall back to mock): {e}", exc_info=True)
+            self.logger.error(f"Amazon Bedrock error: {e}", exc_info=True)
             # Reset cached client so next call retries fresh
             self._bedrock_client = None
             return None
