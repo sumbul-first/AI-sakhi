@@ -58,8 +58,12 @@
     <div class="voice-panel" id="voicePanel">
         <div class="voice-panel-header">
             <h2 class="section-heading" style="margin-bottom:0">🎤 {{ _('Ask AI Sakhi') }}</h2>
-            <button class="chat-close-btn" onclick="toggleChatPanel(false)" title="{{ _('Close') }}">✕</button>
+            <div class="chat-panel-btns">
+                <button class="chat-ctrl-btn" id="minimizeBtn" onclick="toggleMinimize()" title="{{ _('Minimize') }}">─</button>
+                <button class="chat-ctrl-btn" onclick="toggleChatPanel(false)" title="{{ _('Close') }}">✕</button>
+            </div>
         </div>
+        <div id="chatBody">
         <p class="voice-hint">{{ _('Type or speak your question about this topic') }}</p>
 
         <div class="chat-container">
@@ -79,8 +83,9 @@
                 <button class="btn btn-primary" onclick="sendTextQuery()">{{ _('Send') }}</button>
                 <button class="btn btn-secondary" onclick="toggleVoice()" id="voiceButton">🎤</button>
             </div>
-        </div>
-    </div>
+        </div><!-- /.chat-container -->
+        </div><!-- /#chatBody -->
+    </div><!-- /.voice-panel -->
 
     <!-- Emergency Contacts -->
     <div class="emergency-card">
@@ -129,11 +134,13 @@
 
 .voice-panel { background: #fdf4ff; border-radius: 16px; padding: 2rem; margin-bottom: 2rem; }
 .voice-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.chat-close-btn {
-    background: none; border: none; font-size: 1.2rem; cursor: pointer;
+.chat-panel-btns { display: flex; gap: 0.25rem; }
+.chat-ctrl-btn {
+    background: none; border: none; font-size: 1.1rem; cursor: pointer;
     color: #999; line-height: 1; padding: 0.25rem 0.5rem; border-radius: 6px;
+    font-weight: 700;
 }
-.chat-close-btn:hover { background: #f0e0f8; color: #d946a6; }
+.chat-ctrl-btn:hover { background: #f0e0f8; color: #d946a6; }
 .voice-hint { color: #666; margin-bottom: 1.5rem; }
 
 .chat-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -184,9 +191,24 @@ function toggleChatPanel(show) {
     sessionStorage.setItem('chatPanelHidden', show ? 'false' : 'true');
 }
 
+function toggleMinimize() {
+    const body = document.getElementById('chatBody');
+    const btn = document.getElementById('minimizeBtn');
+    const isMinimized = body.style.display === 'none';
+    body.style.display = isMinimized ? '' : 'none';
+    btn.textContent = isMinimized ? '─' : '▢';
+    btn.title = isMinimized ? 'Minimize' : 'Restore';
+    sessionStorage.setItem('chatMinimized', isMinimized ? 'false' : 'true');
+}
+
 // Restore panel visibility on page load — default is visible
 if (sessionStorage.getItem('chatPanelHidden') === 'true') {
     voicePanel.style.display = 'none';
+}
+if (sessionStorage.getItem('chatMinimized') === 'true') {
+    document.getElementById('chatBody').style.display = 'none';
+    document.getElementById('minimizeBtn').textContent = '▢';
+    document.getElementById('minimizeBtn').title = 'Restore';
 }
 
 function appendMessage(text, role) {
@@ -232,6 +254,8 @@ function sendTextQuery() {
 
 function askAboutTopic(topic) {
     toggleChatPanel(true);
+    // restore if minimized
+    if (document.getElementById('chatBody').style.display === 'none') toggleMinimize();
     document.getElementById('textInput').value = topic;
     sendTextQuery();
 }
