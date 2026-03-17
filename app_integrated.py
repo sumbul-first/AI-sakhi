@@ -22,6 +22,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import base64
+import json
+from urllib.parse import quote_plus
 
 # Load .env file if present (for local development configuration)
 try:
@@ -328,6 +330,17 @@ health_modules = {
     'government': GovernmentResourcesModule(content_manager, session_manager)
 }
 
+# Load module video search queries
+_videos_config_path = os.path.join(os.path.dirname(__file__), 'data', 'module_videos.json')
+try:
+    with open(_videos_config_path, 'r', encoding='utf-8') as _f:
+        _raw = json.load(_f)
+    module_video_queries = {k: v for k, v in _raw.items() if not k.startswith('_')}
+    logger.info(f"Loaded video queries for modules: {list(module_video_queries.keys())}")
+except Exception as _e:
+    module_video_queries = {}
+    logger.warning(f"Could not load module_videos.json: {_e}")
+
 logger.info("AI Sakhi initialization complete!")
 
 
@@ -497,10 +510,19 @@ def module_detail(module_name):
         # Get available topics
         topics = module.get_module_topics(language_code)
         
+        # Build YouTube search embed URL for this module
+        video_info = module_video_queries.get(module_name)
+        video_embed_url = None
+        if video_info:
+            q = quote_plus(video_info['search_query'])
+            video_embed_url = f"https://www.youtube.com/embed?listType=search&list={q}&rel=0"
+
         return render_template('module.html',
                              module_name=module_name,
                              module_info=module_info,
-                             topics=topics)
+                             topics=topics,
+                             video_embed_url=video_embed_url,
+                             video_label=video_info.get('label', '') if video_info else '')
     except Exception as e:
         logger.error(f"Error loading module {module_name}: {e}")
         return render_template('error.html',

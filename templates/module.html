@@ -31,21 +31,13 @@
     {% endif %}
 
     <!-- Video Section -->
-    {% set videos = {
-        'puberty':    'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
-        'menstrual':  'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
-        'safety':     'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
-        'pregnancy':  'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
-        'government': 'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG'
-    } %}
-    {% set video_url = videos.get(module_name) %}
-    {% if video_url %}
+    {% if video_embed_url %}
     <div class="video-section">
-        <h2 class="section-heading">🎬 {{ _('Related Videos') }}</h2>
+        <h2 class="section-heading">🎬 {{ video_label or _('Related Videos') }}</h2>
         <div class="video-wrapper">
             <iframe
-                src="{{ video_url }}"
-                title="{{ _('Related video for') }} {{ module_info.module_name | replace('_', ' ') }}"
+                src="{{ video_embed_url }}"
+                title="{{ _('Educational videos for') }} {{ module_info.module_name | replace('_', ' ') }}"
                 frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen>

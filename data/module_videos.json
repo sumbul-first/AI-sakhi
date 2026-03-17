@@ -1,0 +1,23 @@
+{
+  "_comment": "Search queries used to find educational YouTube videos per module. The app embeds a YouTube search for each query. Update queries here to change what videos appear.",
+  "puberty": {
+    "search_query": "puberty girls educational kids health animation hindi",
+    "label": "Puberty Education"
+  },
+  "menstrual": {
+    "search_query": "menstrual health hygiene girls educational animation kids hindi",
+    "label": "Menstrual Health"
+  },
+  "safety": {
+    "search_query": "personal safety women girls educational kids hindi awareness",
+    "label": "Personal Safety"
+  },
+  "pregnancy": {
+    "search_query": "pregnancy maternal health care educational animation hindi",
+    "label": "Pregnancy & Maternal Health"
+  },
+  "government": {
+    "search_query": "government schemes women India welfare education hindi",
+    "label": "Government Schemes for Women"
+  }
+}
