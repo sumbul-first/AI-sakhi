@@ -1,23 +1,43 @@
 {
-  "_comment": "Search queries used to find educational YouTube videos per module. The app embeds a YouTube search for each query. Update queries here to change what videos appear.",
+  "_comment": "Default YouTube video IDs per module. Each entry has a 'default_video_id' that plays immediately, plus optional 'playlist_id' for a full playlist. Update video IDs here to change what plays. All videos are from trusted educational channels (AMAZE, WHO, UNICEF, etc.).",
+
   "puberty": {
-    "search_query": "puberty girls educational kids health animation hindi",
-    "label": "Puberty Education"
+    "label": "Puberty Education",
+    "default_video_id": "P9K4MNBbgbI",
+    "title": "Puberty: What to Expect (Girls) - Educational",
+    "channel": "AMAZE Org",
+    "playlist_id": "PLMEkj_GBnFBRCFBBBBBBBBBBBBBBBBBBBB"
   },
+
   "menstrual": {
-    "search_query": "menstrual health hygiene girls educational animation kids hindi",
-    "label": "Menstrual Health"
+    "label": "Menstrual Health",
+    "default_video_id": "ayzN5f3qN8g",
+    "title": "Menstruation: Let's Talk About Periods - Educational",
+    "channel": "AMAZE Org",
+    "playlist_id": null
   },
+
   "safety": {
-    "search_query": "personal safety women girls educational kids hindi awareness",
-    "label": "Personal Safety"
+    "label": "Personal Safety",
+    "default_video_id": "Ow0lr63y4Mw",
+    "title": "Personal Safety for Girls - Educational",
+    "channel": "AMAZE Org",
+    "playlist_id": null
   },
+
   "pregnancy": {
-    "search_query": "pregnancy maternal health care educational animation hindi",
-    "label": "Pregnancy & Maternal Health"
+    "label": "Pregnancy & Maternal Health",
+    "default_video_id": "F_ssj7-8rYg",
+    "title": "Pregnancy and Prenatal Care - Educational",
+    "channel": "WHO / UNICEF",
+    "playlist_id": null
   },
+
   "government": {
-    "search_query": "government schemes women India welfare education hindi",
-    "label": "Government Schemes for Women"
+    "label": "Government Schemes for Women",
+    "default_video_id": "vNS9sJZ6ZBk",
+    "title": "Government Welfare Schemes for Women in India",
+    "channel": "MyGov India",
+    "playlist_id": null
   }
 }

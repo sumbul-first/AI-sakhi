@@ -23,7 +23,6 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import base64
 import json
-from urllib.parse import quote_plus
 
 # Load .env file if present (for local development configuration)
 try:
@@ -510,19 +509,22 @@ def module_detail(module_name):
         # Get available topics
         topics = module.get_module_topics(language_code)
         
-        # Build YouTube search embed URL for this module
+        # Build YouTube embed URL for this module
         video_info = module_video_queries.get(module_name)
         video_embed_url = None
+        video_label = ''
         if video_info:
-            q = quote_plus(video_info['search_query'])
-            video_embed_url = f"https://www.youtube.com/embed?listType=search&list={q}&rel=0"
+            vid = video_info.get('default_video_id')
+            if vid:
+                video_embed_url = f"https://www.youtube.com/embed/{vid}?rel=0&modestbranding=1"
+            video_label = video_info.get('label', '')
 
         return render_template('module.html',
                              module_name=module_name,
                              module_info=module_info,
                              topics=topics,
                              video_embed_url=video_embed_url,
-                             video_label=video_info.get('label', '') if video_info else '')
+                             video_label=video_label)
     except Exception as e:
         logger.error(f"Error loading module {module_name}: {e}")
         return render_template('error.html',
