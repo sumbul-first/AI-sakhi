@@ -30,9 +30,36 @@
     </div>
     {% endif %}
 
+    <!-- Video Section -->
+    {% set videos = {
+        'puberty':    'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
+        'menstrual':  'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
+        'safety':     'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
+        'pregnancy':  'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG',
+        'government': 'https://www.youtube.com/embed/videoseries?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG'
+    } %}
+    {% set video_url = videos.get(module_name) %}
+    {% if video_url %}
+    <div class="video-section">
+        <h2 class="section-heading">🎬 {{ _('Related Videos') }}</h2>
+        <div class="video-wrapper">
+            <iframe
+                src="{{ video_url }}"
+                title="{{ _('Related video for') }} {{ module_info.module_name | replace('_', ' ') }}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Voice Interaction Panel -->
-    <div class="voice-panel">
-        <h2 class="section-heading">🎤 {{ _('Ask AI Sakhi') }}</h2>
+    <div class="voice-panel" id="voicePanel">
+        <div class="voice-panel-header">
+            <h2 class="section-heading" style="margin-bottom:0">🎤 {{ _('Ask AI Sakhi') }}</h2>
+            <button class="chat-close-btn" onclick="document.getElementById('voicePanel').style.display='none'" title="{{ _('Close') }}">✕</button>
+        </div>
         <p class="voice-hint">{{ _('Type or speak your question about this topic') }}</p>
 
         <div class="chat-container">
@@ -101,6 +128,12 @@
 .topic-ask { font-size: 0.8rem; color: #d946a6; font-weight: 600; }
 
 .voice-panel { background: #fdf4ff; border-radius: 16px; padding: 2rem; margin-bottom: 2rem; }
+.voice-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.chat-close-btn {
+    background: none; border: none; font-size: 1.2rem; cursor: pointer;
+    color: #999; line-height: 1; padding: 0.25rem 0.5rem; border-radius: 6px;
+}
+.chat-close-btn:hover { background: #f0e0f8; color: #d946a6; }
 .voice-hint { color: #666; margin-bottom: 1.5rem; }
 
 .chat-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -127,6 +160,10 @@
 .contact-label { color: #666; }
 .contact-number { color: #dc2626; font-weight: 700; font-size: 1.1rem; text-decoration: none; }
 .contact-number:hover { text-decoration: underline; }
+
+.video-section { margin-bottom: 2.5rem; }
+.video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
 @media (max-width: 600px) {
     .topics-grid { grid-template-columns: repeat(2, 1fr); }

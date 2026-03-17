@@ -18,6 +18,10 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
     
+    <style>
+        .home-link { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; }
+        .home-link:hover .app-title { color: #d946a6; }
+    </style>
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -25,14 +29,16 @@
     <header class="app-header">
         <div class="container">
             <div class="logo-container">
-                <img src="{{ url_for('static', filename='images/ai-sakhi-logo.svg') }}" 
-                     alt="{{ _('AI Sakhi Logo') }}" 
-                     class="main-logo ai-sakhi-logo">
-                <div class="brand-text">
-                    <h1 class="app-title">AI SAKHI</h1>
-                    <p class="app-tagline">{{ _('आपकी सखी, आपके साथ') }}</p>
-                    <p class="app-subtitle">{{ _('Voice-First Health Companion') }}</p>
-                </div>
+                <a href="{{ url_for('index') }}" class="home-link" title="{{ _('Home') }}">
+                    <img src="{{ url_for('static', filename='images/ai-sakhi-logo.svg') }}" 
+                         alt="{{ _('AI Sakhi Logo') }}" 
+                         class="main-logo ai-sakhi-logo">
+                    <div class="brand-text">
+                        <h1 class="app-title">AI SAKHI</h1>
+                        <p class="app-tagline">{{ _('आपकी सखी, आपके साथ') }}</p>
+                        <p class="app-subtitle">{{ _('Voice-First Health Companion') }}</p>
+                    </div>
+                </a>
             </div>
             
             <!-- Language Selector -->
